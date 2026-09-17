@@ -8,6 +8,7 @@ cs<-function(x){
   return(   (x-mean(x,na.rm=TRUE))/sd(x,na.rm=TRUE) )}
 #########################		ROUND DES P.VALEURS		######### UTILE dans les codes de prog
 rdpv<-function(x){
+  res<-NA
   if(!is.na(x)){
     if(x<0.01){res<-"<0.01"}
     if(x>=0.01){res<-round(x,3)}
