@@ -8,7 +8,6 @@
 #'
 #' @importFrom shiny NS tagList
 #' @import irr
-#' @import gdata
 #' @import boot
 
 mod_Concordance_ui <- function(id){
@@ -160,7 +159,7 @@ mod_Concordance_server <- function(id,r){
     
     output$PDFconcordance = downloadHandler(
       filename    = '6_Concordance.pdf',
-      content     = function(file) file.copy('www/6_Concordance.pdf', file, overwrite = TRUE),
+      content     = function(file) file.copy(system.file("app/www/6_Concordance.pdf", package = 'GmrcShinyStats'), file, overwrite = TRUE),
       contentType = 'application/pdf'
     ) 
     
@@ -231,7 +230,7 @@ mod_Concordance_server <- function(id,r){
         Mat2[,2]				<-as.factor(Mat2[,2])
         levels(Mat2[,1])	<- c(levels(Mat2[,1]),LEV[!is.element(LEV,levels(Mat2[,1]))]      )
         levels(Mat2[,2])	<- c(levels(Mat2[,2]),LEV[!is.element(LEV,levels(Mat2[,2]))]      )
-        Mat2[,1]<-reorder.factor(Mat2[,1], new.order=levels(Mat2[,2]))
+        Mat2[,1]<-reorder_factor_levels(Mat2[,1], new.order=levels(Mat2[,2]))
         
         if(all(Mat2[,1]==Mat2[,2])){RESULTAT<-c(1,1,1)}else{
           lkappa.boot <- function(data,x) {kappa2(data[x,])$value}

@@ -231,7 +231,6 @@ mod_SaisieManuelle_server <- function(id){
     
     
     output$KappaMAIN <- renderTable({
-      library(boot)
       Nblignes   <-input$NbLignesMAIN
       Nbcolonnes <-input$NbcolonnesMAIN
       
@@ -322,7 +321,7 @@ mod_SaisieManuelle_server <- function(id){
       Mat2[,2]				<-as.factor(Mat2[,2])
       levels(Mat2[,1])	<- c(levels(Mat2[,1]),LEV[!is.element(LEV,levels(Mat2[,1]))]      )
       levels(Mat2[,2])	<- c(levels(Mat2[,2]),LEV[!is.element(LEV,levels(Mat2[,2]))]      )
-      Mat2[,1]<-reorder.factor(Mat2[,1], new.order=levels(Mat2[,2]))
+      Mat2[,1]<-reorder_factor_levels(Mat2[,1], new.order=levels(Mat2[,2]))
       
       if(all(Mat2[,1]==Mat2[,2])){RESULTAT<-c(1,1,1)}else{
         lkappa.boot <- function(data,x) {suppressWarnings(kappa2(data[x,]))$value}

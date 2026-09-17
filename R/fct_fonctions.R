@@ -48,7 +48,7 @@ tablePourcent<- function(base){
 
 pieChart<- function(base){
   data<- tablePourcent(base)
-  bp<- ggplot(data=data, aes(x=0 ,y=pourcent, fill=reorder(nom, 1/pourcent)))+
+  bp<- ggplot(data=data, aes(x=0 ,y=pourcent, fill=reorder_factor_levels(factor(nom), nom[order(-pourcent)])))+
     coord_polar(theta='y')
   df <- try(data %>% mutate(pos = cumsum(sort(data$pourcent))- sort(data$pourcent)/2))
   
@@ -87,7 +87,7 @@ pieChart<- function(base){
 
 diagrammeBarre <- function(base){
   data<- tablePourcent(base)
-  bp<-ggplot(data=data, aes(x=nom ,y=pourcent*100, fill=reorder(nom, 1/pourcent)))
+  bp<-ggplot(data=data, aes(x=nom ,y=pourcent*100, fill=reorder_factor_levels(factor(nom), nom[order(-pourcent)])))
   
   maxPourcent<- max(data$pourcent, na.rm = T)
   label<-  paste(round(data$pourcent,3)*100,"%")
@@ -136,6 +136,12 @@ tests_autoGMRC<-function (var, grp){
     else ~. %>% oneway.test(var.equal = F)
     else ~kruskal.test
   }
+}
+
+reorder_factor_levels <- function(x, new.order) {
+  lv <- levels(x)
+  new_levels <- c(intersect(new.order, lv), setdiff(lv, new.order))
+  factor(x, levels = new_levels)
 }
 
 file.choose2 <- function(...) {
