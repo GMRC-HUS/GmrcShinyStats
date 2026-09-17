@@ -1,4 +1,4 @@
 library(testthat)
-library(gmrc)
+library(GmrcShinyStats)
 
-test_check("gmrc")
+test_check("GmrcShinyStats")
