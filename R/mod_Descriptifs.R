@@ -30,7 +30,7 @@ mod_Descriptifs_server <- function(id,r){
     
     diagrammeBarre <- function(base){
       data<- tablePourcent(base)
-      bp<-ggplot(data=data, aes(x=nom ,y=pourcent*100, fill=reorder(nom, 1/pourcent)))
+      bp<-ggplot(data=data, aes(x=nom ,y=pourcent*100, fill=reorder_factor_levels(factor(nom), nom[order(-pourcent)])))
       
       maxPourcent<- max(data$pourcent, na.rm = T)
       label<-  paste(round(data$pourcent,3)*100,"%")

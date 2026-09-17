@@ -196,15 +196,10 @@ output$LogitROC <- renderPlot({
       variablesurvie1 <-base %>% select(input$variableLogit1)
       variablesurvie1 <- variablesurvie1[[1]]
       #variablesurvie2 <-base[,colnames(base)==input$variableLogit2]
-      variablesurvie2 <-base %>% select(input$variableLogit2)
-      variablesurvie2 <- variablesurvie2[[1]]
+       variablesurvie2 <-base %>% select(input$variableLogit2)
+       variablesurvie2 <- variablesurvie2[[1]]
 
-print("variablesurvie1")
-print(variablesurvie1)
-print("variablesurvie2")
-print(variablesurvie2)
-
-  rocobj<-roc(variablesurvie1,variablesurvie2, percent=TRUE,ci=TRUE,print.auc=input$LOGIToptionsAUC)
+   rocobj<-roc(variablesurvie1,variablesurvie2, percent=TRUE,ci=TRUE,print.auc=input$LOGIToptionsAUC)
   x<-ci.thresholds(rocobj)
 
   MatriceSEUILS<-cbind(
@@ -308,7 +303,7 @@ observe({
      x<-base %>% select(input$variableLogit2)
      x<-x[[1]]
 
-      rocobj                  <-roc(y,x,main=titre, percent=TRUE,ci=TRUE,print.auc=TRUE)
+      rocobj                  <-roc(y,x,main=input$variableLogit2, percent=TRUE,ci=TRUE,print.auc=TRUE)
       optimums                <-ci(rocobj, of="thresholds", thresholds="best")
 
       AUC                     <-c( round(rocobj$ci[1],2),  round(rocobj$ci[2],2),  round(rocobj$ci[3],2) )
@@ -335,7 +330,7 @@ observe({
       x<-base %>% select(input$variableLogit2)
       x<-x[[1]]
       
-      rocobj<-roc(y,x,main=titre, percent=TRUE,ci=TRUE,print.auc=TRUE)
+      rocobj<-roc(y,x,main=input$variableLogit2, percent=TRUE,ci=TRUE,print.auc=TRUE)
       optimums<-ci(rocobj, of="thresholds", thresholds="best")
 
       best.cut<-as.numeric(rownames(round(optimums$sensitivity,2)))
@@ -370,7 +365,7 @@ observe({
       x<-base %>% select(input$variableLogit2)
       x<-x[[1]]
       
-      rocobj<-roc(y,x,main=titre, percent=TRUE,ci=TRUE,print.auc=TRUE)
+      rocobj<-roc(y,x,main=input$variableLogit2, percent=TRUE,ci=TRUE,print.auc=TRUE)
       optimums<-ci(rocobj, of="thresholds", thresholds="best")
 
       best.cut<-as.numeric(rownames(round(optimums$sensitivity,2)))

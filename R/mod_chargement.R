@@ -198,20 +198,7 @@ mod_chargement_server <- function(id,r){
       r$variableNormale<-ret
     })
     
-    # 
-    # 
-    # 
-    # 
-    # # Est-ce qu'un filtre est appliqué à la base de données ?
-    output$FILTREapplique44<- renderUI({
-
-
-      HTML("f")
-
-
-    })
     
-
   })
 }
 

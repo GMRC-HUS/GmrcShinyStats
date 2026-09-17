@@ -106,34 +106,6 @@ mod_Accueil_server <- function(id){
       contentType = 'application/pdf'
     )
     
-    output$PDFbase = downloadHandler(
-      filename    = '1_BaseDeDonnees.pdf',
-      content     = function(file) file.copy(system.file('www/1_BaseDeDonnees.pdf', package = 'GmrcShinyStats'), file, overwrite = TRUE),
-      contentType = 'application/pdf'
-    )
-    
-
-    
-    output$PDFdescriptif2 = downloadHandler(
-      filename    = '2_DescriptifVAR.pdf',
-      content     = function(file) file.copy(system.file("app/www/2_DescriptifVAR.pdf", package = 'GmrcShinyStats'), file, overwrite = TRUE),
-      contentType = 'application/pdf'
-    )
-    
-
-    
-
-    
-
-    
-
-    
-    output$DLcnil = downloadHandler(
-      filename    = 'DBnonCRIH.pdf',
-      content     = function(file) file.copy(system.file("app/www/DBnonCRIH.pdf", package = 'GmrcShinyStats'), file, overwrite = TRUE),
-      contentType = 'application/pdf'
-    )
-    
     output$DLcsv <- downloadHandler(
       filename ='ExempleCSV.csv',
       content = function(file) file.copy(system.file("app/www/ExempleCSV.csv", package = 'GmrcShinyStats'), file, overwrite = TRUE),

@@ -3,8 +3,8 @@
 #' @param request Internal parameter for `{shiny}`.
 #'     DO NOT REMOVE.
 #' @import shiny
-#' @import shinydashboard
 #' @import shinydashboardPlus
+#' @importFrom shinydashboard dashboardBody sidebarMenu menuItem tabItem tabItems
 #' @noRd
 #' @dashboardthemes
 

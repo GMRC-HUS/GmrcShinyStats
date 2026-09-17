@@ -220,7 +220,7 @@ striping:
     
     output$PDFcroisements = downloadHandler(
       filename    = '3_Croisements.pdf',
-      content     = function(file) file.copy('www/3_Croisements.pdf', file, overwrite = TRUE),
+      content     = function(file) file.copy(system.file("app/www/3_Croisements.pdf", package = 'GmrcShinyStats'), file, overwrite = TRUE),
       contentType = 'application/pdf'
     ) 
     
@@ -235,9 +235,6 @@ striping:
 
 
     output$propositionsCROISE1 <- renderUI({
-      print("##########################")
-      print(r)
-      print("##########################")
       selectInput(ns("variableCROISE1"), "Variable:",   choices=r$noms)
     })
 
@@ -504,7 +501,6 @@ striping:
         if(!is.factor(X)){X<-as.factor(X)}
         nomY<-deparse(substitute(Y))
         nbnv<-nlevels(X)
-        library(moments)
 
         if(nlevels(X)==2){pvaleur<-format.pval(wilcox.test(Y~X)$p.value,digits=4)}else{if(nlevels(X)>2){pvaleur<-format.pval(kruskal.test(Y~X)$p.value,digits=4)}}
 
