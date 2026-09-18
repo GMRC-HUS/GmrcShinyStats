@@ -68,3 +68,39 @@ test_that("desql returns counts and proportions for a factor", {
   expect_equal(res[3, 1], 3)
   expect_equal(res[5, 1], 1)
 })
+
+test_that("descr3 returns named test fields that match their UI labels", {
+  set.seed(1)
+  y <- rnorm(90)
+  grp <- factor(rep(c("A", "B", "C"), each = 30))
+  res <- descr3(y, grp)
+  expect_true(all(c("TestNormalite", "Testpv", "TestsNPv",
+                    "Tests_de_Student", "TestsNP") %in% names(res)))
+  expect_true(grepl("Bartlett", res$Testpv))
+  expect_true(grepl("Fligner", res$TestsNPv))
+  expect_true(grepl("Variance", res$Tests_de_Student))
+  expect_true(grepl("Kruskal", res$TestsNP))
+})
+
+test_that("tab_survie returns the Kaplan-Meier detail table", {
+  set.seed(1)
+  x <- rpois(50, 30)
+  x[x == 0] <- 1
+  y <- c(0, 1, 0, 1, rbinom(46, 1, 0.5))
+  res <- tab_survie(x, y)
+  expect_s3_class(res, "data.frame")
+  expect_true(all(c("Delai", "nrisque", "evenements", "censures",
+                    "survie", "ecart_type", "IC95_sup", "IC95_inf") %in% names(res)))
+})
+
+test_that("lire_bdd_csv reads a CSV, applies dec/NA, strips empty rows, NULL on error", {
+  tmp <- tempfile(fileext = ".csv")
+  writeLines(c("a;b", "1,5;*", "2;3", ";", "3,25;4"), tmp)
+  dd <- lire_bdd_csv(tmp, header = TRUE, sep = ";",
+                     manquants = "*", decimale = ",", encodage = "utf-8")
+  expect_s3_class(dd, "data.frame")
+  expect_equal(nrow(dd), 3)
+  expect_equal(dd$a[1], 1.5)
+  expect_true(is.na(dd$b[1]))
+  expect_null(lire_bdd_csv(tempfile(fileext = ".csv")))
+})

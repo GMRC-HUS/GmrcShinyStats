@@ -72,7 +72,7 @@ mod_Survie_server <- function(id, r){
                                                         d'une comparaison entre plusieurs groupes, le détail est présenté par groupes, un test d'égalité de l'ensemble des courbes est 
                                                         présenté (Test du Log-Rank) et les résultats sont affichés au bas de cette page."),
             h3("Valeurs numériques de survie: analyses détaillées"),
-            verbatimTextOutput (ns("sortieSURVIE2")))# fin MainPanel
+            tableOutput(ns("sortieSURVIE2")))# fin MainPanel
           
         )# fin sidebarlayout
       )# fin fluidpage
@@ -91,8 +91,8 @@ mod_Survie_server <- function(id, r){
       
       observe({
     output$analyseDeSurvie = renderUI({
-      if(!r$BASEchargee) do.call(tabPanel,pasDeBase)
-      else do.call(tabPanel,analyseDeSurvie)
+      if(!r$BASEchargee) pasDeBase
+      else analyseDeSurvie
       
       
     })
@@ -122,14 +122,14 @@ mod_Survie_server <- function(id, r){
     })
     
     
-    output$sortieSURVIE2<- renderPrint({
+    output$sortieSURVIE2<- renderTable({
       base    <-r$BDD
       variablesurvie1 <-base[,colnames(base)==input$variablesurvie1]
       variablesurvie2 <-base[,colnames(base)==input$variablesurvie2]
       variablesurvie3 <-base[,colnames(base)==input$variablesurvie3]
-      if(!input$SURVIEcompar){    ggsurvie(variablesurvie1,variablesurvie2      ) }
-      if( input$SURVIEcompar){    ggsurvie(variablesurvie1,variablesurvie2,variablesurvie3 ) }
-    })
+      if(input$SURVIEcompar){    tab_survie(variablesurvie1,variablesurvie2,variablesurvie3) }
+      else{                       tab_survie(variablesurvie1,variablesurvie2) }
+    }, rownames=FALSE)
     
     })
     

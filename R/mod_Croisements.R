@@ -203,7 +203,7 @@ striping:
                                           
                                           # tags$head(tags$style(".butt{background-color:#E9967A;} .butt{color: black;}")),
                                           h3("Tableau de comparaison de population"),
-                                          conditionalPanel(condition = "!is.null(input$VariableCroisees)",ns=ns, tableOutput(ns('tableauCroisement')))
+                                          conditionalPanel(condition = "input.VariableCroisees1 || input.VariableCroisees2 || input.VariableCroisees3",ns=ns, tableOutput(ns('tableauCroisement')))
                                           
                                         )# fin MainPanel
                                         
@@ -226,8 +226,8 @@ striping:
     
     observe({
     output$CroisementsInference = renderUI({
-      if(!r$BASEchargee) do.call(tabPanel,pasDeBase)
-      else do.call(tabPanel,CroisementsInference)
+      if(!r$BASEchargee) pasDeBase
+      else CroisementsInference
       
       
     })
@@ -426,7 +426,7 @@ striping:
       variableCROISE2 <-base[,colnames(base)==input$variableCROISE2]
       if(input$qualiquantiCROISE1=="quant" & input$qualiquantiCROISE2=="qual"){res<-descr3(variableCROISE1,variableCROISE2)}
       if(input$qualiquantiCROISE1=="qual" & input$qualiquantiCROISE2=="quant"){res<-descr3(variableCROISE2,variableCROISE1)}
-      print(res[2])
+      print(res$TestNormalite)
     })
     output$descr3Testpv<- renderPrint({
       base    <-r$BDD
@@ -434,7 +434,7 @@ striping:
       variableCROISE2 <-base[,colnames(base)==input$variableCROISE2]
       if(input$qualiquantiCROISE1=="quant" & input$qualiquantiCROISE2=="qual"){res<-descr3(variableCROISE1,variableCROISE2)}
       if(input$qualiquantiCROISE1=="qual" & input$qualiquantiCROISE2=="quant"){res<-descr3(variableCROISE2,variableCROISE1)}
-      print(res[3])
+      print(res$Testpv)
     })
     output$descr3TestsNPv<- renderPrint({
       base    <-r$BDD
@@ -442,7 +442,7 @@ striping:
       variableCROISE2 <-base[,colnames(base)==input$variableCROISE2]
       if(input$qualiquantiCROISE1=="quant" & input$qualiquantiCROISE2=="qual"){res<-descr3(variableCROISE1,variableCROISE2)}
       if(input$qualiquantiCROISE1=="qual" & input$qualiquantiCROISE2=="quant"){res<-descr3(variableCROISE2,variableCROISE1)}
-      print(res[4])
+      print(res$TestsNPv)
     })
 
     output$descr3Tests_de_Student<- renderPrint({
@@ -451,7 +451,7 @@ striping:
       variableCROISE2 <-base[,colnames(base)==input$variableCROISE2]
       if(input$qualiquantiCROISE1=="quant" & input$qualiquantiCROISE2=="qual"){res<-descr3(variableCROISE1,variableCROISE2)}
       if(input$qualiquantiCROISE1=="qual" & input$qualiquantiCROISE2=="quant"){res<-descr3(variableCROISE2,variableCROISE1)}
-      print(res[5])
+      print(res$Tests_de_Student)
     })
 
 
@@ -461,7 +461,7 @@ striping:
       variableCROISE2 <-base[,colnames(base)==input$variableCROISE2]
       if(input$qualiquantiCROISE1=="quant" & input$qualiquantiCROISE2=="qual"){res<-descr3(variableCROISE1,variableCROISE2)}
       if(input$qualiquantiCROISE1=="qual" & input$qualiquantiCROISE2=="quant"){res<-descr3(variableCROISE2,variableCROISE1)}
-      print(res[6])
+      print(res$TestsNP)
     })
 
 

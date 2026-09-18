@@ -12,8 +12,8 @@
 #'     kruskal.test ks.test mcnemar.test median optimize pchisq predict
 #'     qbeta qchisq qnorm qqline qqnorm qt quantile sd shapiro.test t.test
 #'     var.test wilcox.test
-#' @importFrom graphics axis barplot boxplot curve hist legend lines par
-#'     points rect segments text
+#' @importFrom graphics abline axis barplot boxplot curve hist legend lines
+#'     mtext par points rect segments text
 #' @importFrom grDevices colorRampPalette nclass.Sturges
 #' @importFrom moments kurtosis skewness
 #' @importFrom survival Surv survfit survdiff
@@ -50,6 +50,27 @@ fligner_test<-function(...) {
   stop("fligner.test introuvable : installez le paquet 'car' (install.packages('car')).", call. = FALSE)
 }
 
+#' Lire une base de données CSV en mémoire
+#'
+#' Charge un fichier CSV en appliquant l'encodage, le séparateur, le symbole
+#' de décimale et le symbole de données manquantes choisis, puis supprime les
+#' lignes entièrement vides. Retourne NULL si le fichier ne peut pas être lu
+#' (au lieu de faire échouer l'application).
+#'
+#' @noRd
+lire_bdd_csv<-function(datapath, header=TRUE, sep=";",
+                       manquants="*", decimale=",", encodage="windows-1252"){
+  if(!is.character(datapath) || length(datapath)!=1 || !file.exists(datapath)) return(NULL)
+  DD<-tryCatch(
+    read.csv(datapath, header=header, sep=sep,
+             na.string=c("", manquants), dec=decimale,
+             fileEncoding=encodage),
+    error=function(e) NULL
+  )
+  if(is.null(DD)) return(NULL)
+  lignesVides<-apply(DD, 1, function(x) sum(is.na(x)))==dim(DD)[2]
+  DD[!lignesVides, , drop=FALSE]
+}
 
 IC.diff.prop<-function(x1,n1,x2,n2,alpha01=0.5,alpha02=0.5,beta01=0.5,beta02=0.5,val=0.95){
   
@@ -2318,18 +2339,39 @@ ggsurvie<-function(x,y,groups=0,latex=0,titre=0)
   }
   
   if(situation==4){		Groupe		<- groups
-  surv2 		<- survfit(Surv(x,y) ~ Groupe)
-  plot2 		<- ggsurv(surv2,main=titre.ac.groupe)+ylim(0,1)
-  print(plot2+ylim(0,1))
-  DETAIL		<-cbind(surv2 $ time , surv2 $ n.risk,  surv2 $ n.event,  surv2 $ n.censor, surv2$surv ,surv2 $ std.err  ,surv2 $ upper,surv2 $ lower   )
-  colnames(DETAIL)	<-c("time","n.risk","n.event","n.censor","surv","std.err","upper95%","lower95%")
-  ST			<-survdiff(Surv(x,y) ~ groups)
-  df			<-nlevels(as.factor(groups))-1
-  p.val			<-1-pchisq(ST$chisq,df)
-  cat(paste("La p.valeur associee au test de comparaison des courbes de survie (Test du log-Rank) est de:",round(p.val,2)))
-  cat(" \n")				
-  print(xtable(DETAIL))			
+   surv2 		<- survfit(Surv(x,y) ~ Groupe)
+   plot2 		<- ggsurv(surv2,main=titre.ac.groupe)+ylim(0,1)
+   print(plot2+ylim(0,1))
+   DETAIL		<-cbind(surv2 $ time , surv2 $ n.risk,  surv2 $ n.event,  surv2 $ n.censor, surv2$surv ,surv2 $ std.err  ,surv2 $ upper,surv2 $ lower   )
+   colnames(DETAIL)	<-c("time","n.risk","n.event","n.censor","surv","std.err","upper95%","lower95%")
+   ST			<-survdiff(Surv(x,y) ~ groups)
+   df			<-nlevels(as.factor(groups))-1
+   p.val			<-1-pchisq(ST$chisq,df)
+   cat(paste("La p.valeur associee au test de comparaison des courbes de survie (Test du log-Rank) est de:",round(p.val,2)))
+   cat(" \n")
+   print(xtable(DETAIL))
+   }
+}
+
+tab_survie<-function(x,y,groups=0){
+  if(length(groups)==1 && groups==0){
+    surv2 <- survfit(Surv(x,y) ~ 1)
+  } else {
+    Groupe <- as.factor(groups)
+    surv2 <- survfit(Surv(x,y) ~ Groupe)
   }
+  DETAIL <- data.frame(Delai=round(surv2$time,3),
+                       nrisque=surv2$n.risk,
+                       evenements=surv2$n.event,
+                       censures=surv2$n.censor,
+                       survie=round(surv2$surv,3),
+                       ecart_type=round(surv2$std.err,3),
+                       IC95_sup=round(surv2$upper,3),
+                       IC95_inf=round(surv2$lower,3))
+  if(!is.null(surv2$strata)){
+    DETAIL$Groupe <- sub("^.*=\\s*", "", rep(names(surv2$strata), unname(surv2$strata)))
+  }
+  DETAIL
 }
 
 

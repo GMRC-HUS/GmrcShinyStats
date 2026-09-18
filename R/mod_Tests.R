@@ -127,8 +127,8 @@ mod_Tests_server <- function(id,r){
     
     observe({
     output$testsDiagnostiques = renderUI({
-      if(!r$BASEchargee) do.call(tabPanel,pasDeBase)
-      else do.call(tabPanel,testsDiagnostiques)
+      if(!r$BASEchargee) pasDeBase
+      else testsDiagnostiques
     })
     })
     
@@ -172,16 +172,16 @@ output$LogitROC <- renderPlot({
   variablesurvie2 <- variablesurvie2[[1]]
 
 
-  rocobj<-plot.roc(variablesurvie1,variablesurvie2, percent=TRUE,ci=TRUE,print.auc=input$LOGIToptionsAUC)
+  optionsAUC   <- isTRUE(input$LOGIToptionsAUC)
+  optionsSEUIL <- isTRUE(input$LOGIToptionsSEUIL)
+  optionsCI    <- isTRUE(input$LOGIToptionsIntervalle)
+  rocobj<-plot.roc(variablesurvie1,variablesurvie2, percent=TRUE,ci=optionsCI,print.auc=optionsAUC)
 
-
-  if(input$LOGIToptionsSEUIL){
+  if(optionsSEUIL){
     optimums       <-ci(rocobj, of="thresholds", thresholds="best")
-    plot(optimums) }
-
-  if(input$LOGIToptionsIntervalle){
-    ciobj           <- ci.se(rocobj, specificities=seq(0, 100, 5))
-    plot(ciobj, type="shape", col="#1c61b6AA") }
+    abline(v=optimums$est, lty=2, col="red")
+    mtext(paste("Seuil optimal :", round(optimums$est,2)), side=1, line=0.5, col="red")
+  }
 })
 })
  

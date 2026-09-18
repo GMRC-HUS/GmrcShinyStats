@@ -166,8 +166,8 @@ mod_Concordance_server <- function(id,r){
     
     observe({
       output$concordance = renderUI({
-        if(!r$BASEchargee) do.call(tabPanel,pasDeBase)
-        else do.call(tabPanel,concordanceAvecBase)
+        if(!r$BASEchargee) pasDeBase
+        else concordanceAvecBase
       })
     })
       

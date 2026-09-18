@@ -186,8 +186,8 @@ mod_Descriptifs_server <- function(id,r){
 
     observe({
     output$univarie = renderUI({
-      if(!r$BASEchargee) do.call(tabPanel,pasDeBase)
-      else do.call(tabPanel,univarie)
+      if(!r$BASEchargee) pasDeBase
+      else univarie
     })
     })
 

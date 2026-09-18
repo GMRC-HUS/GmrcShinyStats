@@ -74,10 +74,9 @@ mod_chargement_server <- function(id,r){
       if (is.null(inFile))
         return(NULL)
       
-      DD<-read.csv(inFile$datapath, header=input$header,sep=input$sep, na.string=c("",input$manquants),dec=input$decimale)
-      lignesVides<-apply(DD,1,function(x){sum(is.na(x))})==dim(DD)[2]
-      DD<-DD[!lignesVides,]
-      DD
+      lire_bdd_csv(inFile$datapath, header=input$header, sep=input$sep,
+                   manquants=input$manquants, decimale=input$decimale,
+                   encodage=input$encodage)
       })
     
     # BDD      <- reactive({
@@ -95,9 +94,10 @@ mod_chargement_server <- function(id,r){
     
     observeEvent(input$file1,ignoreInit = T,{
       inFile <- input$file1
-      DD<-read.csv(inFile$datapath, header=input$header,sep=input$sep, na.string=c("",input$manquants),dec=input$decimale)
-      lignesVides<-apply(DD,1,function(x){sum(is.na(x))})==dim(DD)[2]
-      DD<-DD[!lignesVides,]
+      DD<-lire_bdd_csv(inFile$datapath, header=input$header, sep=input$sep,
+                       manquants=input$manquants, decimale=input$decimale,
+                       encodage=input$encodage)
+      if(is.null(DD)) return()
       r$BDD<-DD
       r$contentInput<-DD
     })
