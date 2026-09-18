@@ -72,6 +72,29 @@ lire_bdd_csv<-function(datapath, header=TRUE, sep=";",
   DD[!lignesVides, , drop=FALSE]
 }
 
+#' Parser une saisie manuelle de tableau croisé
+#'
+#' Transforme une chaîne de nombres séparés par des espaces en une matrice
+#' d'effectifs (n lignes, p colonnes, remplissage par colonne). Retourne NULL
+#' si la saisie est invalide (dimension nulle/négative, nombre de valeurs
+#' différent de n*p, valeurs non numériques ou négatives).
+#'
+#' @noRd
+table_crossed<-function(n, p, x){
+  if(is.null(x) || length(x) != 1 || is.na(x)) return(NULL)
+  n <- suppressWarnings(as.numeric(n))
+  p <- suppressWarnings(as.numeric(p))
+  if(length(n) != 1 || length(p) != 1 || is.na(n) || is.na(p)) return(NULL)
+  if(n < 1 || p < 1) return(NULL)
+  n <- as.integer(n); p <- as.integer(p)
+  raw <- strsplit(trimws(x), "\\s+")[[1]]
+  raw <- raw[raw != ""]
+  v <- suppressWarnings(as.numeric(raw))
+  if(length(v) != n * p) return(NULL)
+  if(any(is.na(v)) || any(v < 0)) return(NULL)
+  matrix(v, ncol = p, nrow = n)
+}
+
 IC.diff.prop<-function(x1,n1,x2,n2,alpha01=0.5,alpha02=0.5,beta01=0.5,beta02=0.5,val=0.95){
   
   if( n1>1 & n2>1 & x1<=n1 & x2<=n2 ) {situation=1}else{situation=0}

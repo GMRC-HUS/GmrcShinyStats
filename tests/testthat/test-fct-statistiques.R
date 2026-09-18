@@ -104,3 +104,13 @@ test_that("lire_bdd_csv reads a CSV, applies dec/NA, strips empty rows, NULL on 
   expect_true(is.na(dd$b[1]))
   expect_null(lire_bdd_csv(tempfile(fileext = ".csv")))
 })
+
+test_that("table_crossed parses a valid 2x2 and rejects invalid input", {
+  expect_equal(table_crossed(2, 2, "1 2 3 4"), matrix(c(1, 2, 3, 4), ncol = 2))
+  expect_equal(table_crossed(2, 2, "  10  20 30 40  "), matrix(c(10, 20, 30, 40), ncol = 2))
+  expect_null(table_crossed(2, 2, "1 2 3"))       # wrong count
+  expect_null(table_crossed(2, 2, "1 2 a 4"))     # non numeric
+  expect_null(table_crossed(2, 2, "1 2 -3 4"))    # negative
+  expect_null(table_crossed(0, 2, "1 2"))         # invalid dimension
+  expect_null(table_crossed(2, 2, ""))            # empty
+})
