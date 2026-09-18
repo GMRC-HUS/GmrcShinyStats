@@ -70,8 +70,9 @@ mod_Croisements_server <- function(id, r){
                                                    ),#finFluidRow
                                                    
                                                     h3("Représentation graphique du lien entre les deux variables"),
-                                                   plotOutput(ns('plotCROISE' )),
-                                                   # debut conditionnal panel QualiQuali
+                                                     plotOutput(ns('plotCROISE' )),
+                                                     downloadButton(ns('pngPLOT_CROISE1'), label = "Télécharger le graphique (PNG)", class = "butt"),
+                                                    # debut conditionnal panel QualiQuali
                                                    conditionalPanel(
                                                      condition = "input.qualiquantiCROISE1 == 'qual' && input.qualiquantiCROISE2 == 'qual'",ns=ns,
                                                      h3("Tableau croisé",align = "left",style = "color:#08088A"),
@@ -108,8 +109,9 @@ mod_Croisements_server <- function(id, r){
                                                      h3("Corrélation entre deux variables quantitatives",align = "left",style = "color:#08088A"),
                                                      verbatimTextOutput (ns("CorrelationCROISE"))
                                                    ),# fin panelQuantiQuali,
-                                                   plotOutput(ns('plotCROISE2'))
-                                                 )# fin MainPanel
+                                                    plotOutput(ns('plotCROISE2')),
+                                                    downloadButton(ns('pngPLOT_CROISE2'), label = "Télécharger le graphique (PNG)", class = "butt")
+                                                  )# fin MainPanel
                                                  
                                                )# fin sidebarlayout
                                     ))# fin fluidpage
@@ -188,30 +190,54 @@ mod_Croisements_server <- function(id, r){
 
 
 
-    output$plotCROISE <- renderPlot({
-      base    <-r$BDD
-      variableCROISE1 <-base[,input$variableCROISE1]
-      variableCROISE2 <-base[,input$variableCROISE2]
-      if(input$qualiquantiCROISE1=="quant" & input$qualiquantiCROISE2=="quant"){print(ggpoints(variableCROISE1,variableCROISE2,nomx =input$variableCROISE1, nomy = input$variableCROISE2 ))}
-      if(input$qualiquantiCROISE1=="quant" & input$qualiquantiCROISE2=="qual"){boxplot(variableCROISE1~variableCROISE2, xlab=input$variableCROISE2, ylab=input$variableCROISE1)}
-      if(input$qualiquantiCROISE1=="qual" & input$qualiquantiCROISE2=="quant"){boxplot(variableCROISE2~variableCROISE1,xlab=input$variableCROISE1, ylab=input$variableCROISE2)}
-      if(input$qualiquantiCROISE1=="qual" & input$qualiquantiCROISE2=="qual"){
-
-        # print(ggpie(as.factor(variableCROISE1),as.factor(variableCROISE2)))
-        barplotCroise<-barplot_croise(base = base,var1=input$variableCROISE1,var2=input$variableCROISE2)
-        print(barplotCroise)
-
-
+    dessinerPLOT_CROISE1 <- function() {
+      base            <- r$BDD
+      variableCROISE1 <- base[, input$variableCROISE1]
+      variableCROISE2 <- base[, input$variableCROISE2]
+      if (input$qualiquantiCROISE1 == "quant" & input$qualiquantiCROISE2 == "quant") {
+        print(ggpoints(variableCROISE1, variableCROISE2, nomx = input$variableCROISE1, nomy = input$variableCROISE2))
       }
+      if (input$qualiquantiCROISE1 == "quant" & input$qualiquantiCROISE2 == "qual") {
+        boxplot(variableCROISE1 ~ variableCROISE2, xlab = input$variableCROISE2, ylab = input$variableCROISE1)
+      }
+      if (input$qualiquantiCROISE1 == "qual" & input$qualiquantiCROISE2 == "quant") {
+        boxplot(variableCROISE2 ~ variableCROISE1, xlab = input$variableCROISE1, ylab = input$variableCROISE2)
+      }
+      if (input$qualiquantiCROISE1 == "qual" & input$qualiquantiCROISE2 == "qual") {
+        print(barplot_croise(base = base, var1 = input$variableCROISE1, var2 = input$variableCROISE2))
+      }
+    }
+    output$plotCROISE <- renderPlot({
+      dessinerPLOT_CROISE1()
     })
+
+    dessinerPLOT_CROISE2 <- function() {
+      base            <- r$BDD
+      variableCROISE1 <- base[, colnames(base) == input$variableCROISE1]
+      variableCROISE2 <- base[, colnames(base) == input$variableCROISE2]
+      if (input$qualiquantiCROISE1 == "quant" & input$qualiquantiCROISE2 == "quant") {
+        print(correl(variableCROISE1, variableCROISE2, nomx = input$variableCROISE1, nomy = input$variableCROISE2))
+      }
+      if (input$qualiquantiCROISE1 == "quant" & input$qualiquantiCROISE2 == "qual") {
+        print(ggcompar(input$variableCROISE1, input$variableCROISE2, base))
+      }
+      if (input$qualiquantiCROISE1 == "qual" & input$qualiquantiCROISE2 == "quant") {
+        print(ggcompar(input$variableCROISE2, input$variableCROISE1, base))
+      }
+    }
     output$plotCROISE2 <- renderPlot({
-      base    <-r$BDD
-      variableCROISE1 <-base[,colnames(base)==input$variableCROISE1]
-      variableCROISE2 <-base[,colnames(base)==input$variableCROISE2]
-      if(input$qualiquantiCROISE1=="quant" & input$qualiquantiCROISE2=="quant"){    print(correl(variableCROISE1,variableCROISE2, nomx=input$variableCROISE1 , nomy= input$variableCROISE2))}
-      if(input$qualiquantiCROISE1=="quant" & input$qualiquantiCROISE2=="qual"){     print(ggcompar(input$variableCROISE1,input$variableCROISE2,base))}
-      if(input$qualiquantiCROISE1=="qual" & input$qualiquantiCROISE2=="quant"){     print(ggcompar(input$variableCROISE2,input$variableCROISE1,base))}
+      dessinerPLOT_CROISE2()
     })
+
+    output$pngPLOT_CROISE1 <- downloadHandler(
+      filename = function() paste0("croisement_", input$variableCROISE1, "_", input$variableCROISE2, "_1.png"),
+      content = function(file) export_png(file, dessinerPLOT_CROISE1)
+    )
+
+    output$pngPLOT_CROISE2 <- downloadHandler(
+      filename = function() paste0("croisement_", input$variableCROISE1, "_", input$variableCROISE2, "_2.png"),
+      content = function(file) export_png(file, dessinerPLOT_CROISE2)
+    )
 
 
 

@@ -238,7 +238,8 @@ mod_Concordance_server <- function(id,r){
           RESULTAT<-c(lkappa.boot(Mat2),boot.ci(res,type="bca")$ bca[,4:5])
         }
         cat("Le coefficient de concordance Kappa de Cohen est estimé à",RESULTAT[1],
-            "dans l'intervalle à 95% [",RESULTAT[2],";",RESULTAT[3],"]\nTest\nLe test de nullité de ce coefficient peut être réalisé et la p.valeur associée est",round(kappa2(cbind(x,y))$p.value,3), "\n")
+            "dans l'intervalle à 95% [",RESULTAT[2],";",RESULTAT[3],"]\nTest\nLe test de nullité de ce coefficient peut être réalisé et la p.valeur associée est",round(kappa2(cbind(x,y))$p.value,3),
+            "\nInterprétation (Landis et Koch) :", interpretation_kappa(RESULTAT[1]), "\n")
       }})
       
       output$ConcordanceManuelleSimple <- renderPrint({ 
@@ -257,7 +258,8 @@ mod_Concordance_server <- function(id,r){
         }
         if(x!="" & y!=""){
         cat("Estimation\nLe coefficient de concordance Kappa de Cohen est estimé à",round(kappa2(cbind(x,y))$value,3),".
-        \n\nTest\nLe test de nullité de ce coefficient peut être réalisé et la p.valeur associée est",round(kappa2(cbind(x,y))$p.value,3), "\n")
+        \n\nTest\nLe test de nullité de ce coefficient peut être réalisé et la p.valeur associée est",round(kappa2(cbind(x,y))$p.value,3),
+        "\nInterprétation (Landis et Koch) :", interpretation_kappa(kappa2(cbind(x,y))$value), "\n")
       }else{cat("Veuillez saisir les réponses de chaque lecteur.")}})
       
       output$LandisEtKoch2 <- renderTable({

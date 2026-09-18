@@ -146,11 +146,14 @@ mod_Descriptifs_server <- function(id,r){
                                                     #   # )
                                                     # ),#finFluidRow
                                                     
-                                                    tags$head(tags$style(".butt{background-color:#E9967A;} .butt{color: black;}")),
-                                                    fluidRow(
-                                                      column(6,   textOutput(ns("descriptifUni")),br(),  tableOutput(ns("descvar"))),
-                                                      column(6,     plotOutput(ns('plot1')) , plotOutput(ns('plot2')) )
-                                                    )# fin fluid row du main panel 
+                                                     fluidRow(
+                                                       column(6,   textOutput(ns("descriptifUni")),br(),  tableOutput(ns("descvar")),
+                                                                  downloadButton(ns('csvDESCVAR'), label = "Télécharger le descriptif (CSV)", class = "butt")),
+                                                       column(6,     plotOutput(ns('plot1')),
+                                                                  downloadButton(ns('pngPLOT1'), label = "Télécharger le graphique (PNG)", class = "butt"),
+                                                                  plotOutput(ns('plot2')),
+                                                                  downloadButton(ns('pngPLOT2'), label = "Télécharger le graphique (PNG)", class = "butt"))
+                                                     )# fin fluid row du main panel
                                                     
                                                   )# fin MainPanel
                                                   
@@ -266,35 +269,65 @@ mod_Descriptifs_server <- function(id,r){
       xtable(res, "essai")
     },hover = T,rownames=TRUE)
 
-    output$plot1 <- renderPlot({
-      base    <-r$BDD
-      variable<-base[,input$variable]
-      if(input$qualiquanti=="quant"){
-        print(   hist(variable,
-                      xlab = input$variable,
-                      ylab = "Effectif",
-                      main= "Histogramme",
-                      col = "#75AADB", border = "white") )
-        #g<-ggplot(base, aes_string(x=input$variable))+geom_histogram(fill="#75AADB", color="white")+theme_minimal()+xlab(input$variable)+ylab("Effectif")+ggtitle("Histogramme"); print(g)
-
-
+    dessinerPLOT1 <- function() {
+      base     <- r$BDD
+      variable <- base[, input$variable]
+      if (input$qualiquanti == "quant") {
+        hist(variable, xlab = input$variable, ylab = "Effectif", main = "Histogramme", col = "#75AADB", border = "white")
       }
-      if(input$qualiquanti=="qual") {variable<-as.character(variable);print( diagrammeBarre(variable)  )}
+      if (input$qualiquanti == "qual") {
+        variable <- as.character(variable)
+        print(diagrammeBarre(variable))
+      }
+    }
+    output$plot1 <- renderPlot({
+      dessinerPLOT1()
     })
 
+    dessinerPLOT2 <- function() {
+      base     <- r$BDD
+      variable <- base[, colnames(base) == input$variable]
+      if (input$qualiquanti == "quant") {
+        g <- ggplot(base, aes_string(y = input$variable)) + geom_boxplot(width = 0.2) + theme_minimal()
+        print(g)
+      }
+      if (input$qualiquanti == "qual") {
+        g <- ggplot(as.data.frame(table(variable)), aes(x = "", y = Freq, fill = variable)) +
+          geom_bar(stat = "identity", width = 1) +
+          coord_polar("y", start = 0) + theme_void() + ggtitle("Diagramme circulaire") +
+          geom_text(aes(label = variable),
+                   position = position_stack(vjust = 0.5)) + theme(legend.position = "none")
+        print(g)
+      }
+    }
     output$plot2 <- renderPlot({
-      base    <-r$BDD
-      variable<-base[,colnames(base)==input$variable]
-      #variable<-base[,input$variable]
-      #if(input$qualiquanti=="quant"){boxplot(x=variable,main="Diagramme boite", xlab = input$variable)}
-      if(input$qualiquanti=="quant"){g<-ggplot(base, aes_string(y=input$variable))+geom_boxplot(width=0.2)+theme_minimal(); print(g)}
-      #if(input$qualiquanti=="qual"){print(graphics::pie(as.vector(table(variable))))}
-      if(input$qualiquanti=="qual"){print(as.data.frame(table(variable))); g<-ggplot(as.data.frame(table(variable)), aes(x="", y=Freq, fill=variable)) +
-        geom_bar(stat="identity", width=1) +
-        coord_polar("y", start=0)+theme_void()+ggtitle("Diagramme circulaire")+
-        geom_text(aes(label = variable),
-                  position = position_stack(vjust = 0.5)) +theme(legend.position="none"); print(g)}
+      dessinerPLOT2()
     })
+
+    output$pngPLOT1 <- downloadHandler(
+      filename = function() paste0("descriptif_", input$variable, "_1.png"),
+      content = function(file) export_png(file, dessinerPLOT1)
+    )
+
+    output$pngPLOT2 <- downloadHandler(
+      filename = function() paste0("descriptif_", input$variable, "_2.png"),
+      content = function(file) export_png(file, dessinerPLOT2)
+    )
+
+    output$csvDESCVAR <- downloadHandler(
+      filename = function() paste0("descriptif_", input$variable, ".csv"),
+      content = function(file) {
+        base     <- r$BDD
+        variable <- base[, colnames(base) == input$variable]
+        if (input$qualiquanti == "quant") {
+          res <- data.frame(descr1(variable)$Descriptif)
+        }
+        if (input$qualiquanti == "qual") {
+          res <- data.frame(desql(variable))
+        }
+        write.csv(res, file, row.names = TRUE)
+      }
+    )
     
     # 
     # quali

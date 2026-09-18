@@ -81,8 +81,9 @@ mod_Tests_server <- function(id,r){
                                                         checkboxInput(ns("LOGIToptionsIntervalle"), "Afficher intervalle de confiance courbe ROC", FALSE)
                                                       ),
                                                       h3("Courbe ROC associée"),
-                                                      plotOutput(ns('LogitROC')),
-                                                      br(),br(),
+    plotOutput(ns('LogitROC')),
+                                                       downloadButton(ns('pngPLOT_ROC'), label = "Télécharger la courbe ROC (PNG)", class = "butt"),
+                                                       br(),br(),
                                                       h3("Meilleur seuil estimé par maximisation de l'indice de Youden"),
                                                       tableOutput(ns('LogitROCtableauBEST')),
                                                       br(),br(),
@@ -160,29 +161,33 @@ mod_Tests_server <- function(id,r){
 # 
 # 
 # 
+    dessinerPLOT_ROC <- function() {
+      base <- r$BDD
+
+      variablesurvie1 <- base %>% select(input$variableLogit1)
+      variablesurvie1 <- variablesurvie1[[1]]
+      variablesurvie2 <- base %>% select(input$variableLogit2)
+      variablesurvie2 <- variablesurvie2[[1]]
+
+      optionsAUC   <- isTRUE(input$LOGIToptionsAUC)
+      optionsSEUIL <- isTRUE(input$LOGIToptionsSEUIL)
+      optionsCI    <- isTRUE(input$LOGIToptionsIntervalle)
+      rocobj <- plot.roc(variablesurvie1, variablesurvie2, percent = TRUE, ci = optionsCI, print.auc = optionsAUC)
+
+      if (optionsSEUIL) {
+        optimums <- ci(rocobj, of = "thresholds", thresholds = "best")
+        abline(v = optimums$est, lty = 2, col = "red")
+        mtext(paste("Seuil optimal :", round(optimums$est, 2)), side = 1, line = 0.5, col = "red")
+      }
+    }
 output$LogitROC <- renderPlot({
-  base    <-r$BDD
-  D       <-base
-
-  #variablesurvie1 <-base[,colnames(base)==input$variableLogit1]
-  variablesurvie1 <-base %>% select(input$variableLogit1)
-  variablesurvie1 <- variablesurvie1[[1]]
-  #variablesurvie2 <-base[,colnames(base)==input$variableLogit2]
-  variablesurvie2 <-base %>% select(input$variableLogit2)
-  variablesurvie2 <- variablesurvie2[[1]]
-
-
-  optionsAUC   <- isTRUE(input$LOGIToptionsAUC)
-  optionsSEUIL <- isTRUE(input$LOGIToptionsSEUIL)
-  optionsCI    <- isTRUE(input$LOGIToptionsIntervalle)
-  rocobj<-plot.roc(variablesurvie1,variablesurvie2, percent=TRUE,ci=optionsCI,print.auc=optionsAUC)
-
-  if(optionsSEUIL){
-    optimums       <-ci(rocobj, of="thresholds", thresholds="best")
-    abline(v=optimums$est, lty=2, col="red")
-    mtext(paste("Seuil optimal :", round(optimums$est,2)), side=1, line=0.5, col="red")
-  }
+  dessinerPLOT_ROC()
 })
+
+    output$pngPLOT_ROC <- downloadHandler(
+      filename = function() paste0("roc_", input$variableLogit1, "_", input$variableLogit2, ".png"),
+      content = function(file) export_png(file, dessinerPLOT_ROC)
+    )
 })
  
  

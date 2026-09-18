@@ -24,6 +24,7 @@ barplot_croise<-function(base,var1,var2){
   vjust<- unlist(as.list(ifelse(data$Freq< maxPourcent/5, -1.6, 1.6)), use.names = F)
   
   barplotCroise <- ggplot(data=data, aes(x=var2 ,y=Freq))+
+    theme_gmrc()+
     geom_col( position = "dodge",color='black',aes(fill = var2))+
     facet_wrap( ~var1)+
     geom_text(data=data,aes( label = paste(round(Freq,3)*100,"%")) , vjust=vjust, color="black", size=5) +
@@ -94,8 +95,9 @@ diagrammeBarre <- function(base){
   vjust<- unlist(as.list(ifelse(data$pourcent< maxPourcent/5, -1.6, 1.6)), use.names = F)
   
   barre <- bp +
-    labs(title="Diagramme en barre", 
-         x="", y = "pourcentage")+
+    theme_gmrc()+
+    labs(title="Diagramme en barre",
+          x="", y = "pourcentage")+
     geom_bar(stat="identity", color='black')+
     guides(fill=guide_legend(override.aes=list(colour=NULL)))+
     
@@ -143,6 +145,42 @@ reorder_factor_levels <- function(x, new.order) {
   lv <- levels(x)
   new_levels <- c(intersect(new.order, lv), setdiff(lv, new.order))
   factor(x, levels = new_levels)
+}
+
+theme_gmrc <- function() {
+  ggplot2::theme_minimal(base_size = 13) +
+    ggplot2::theme(
+      plot.title = element_text(face = "bold", hjust = 0.5, size = 16),
+      axis.title = element_text(face = "bold"),
+      panel.grid.minor = element_blank(),
+      legend.position = "bottom"
+    )
+}
+
+export_png <- function(file, draw, width = 900, height = 700, res = 110) {
+  grDevices::png(file, width = width, height = height, res = res)
+  on.exit(grDevices::dev.off())
+  draw()
+  invisible(file)
+}
+
+interpretation_kappa <- function(k) {
+  if (is.na(k)) {
+    return("indéterminée")
+  }
+  if (k <= 0.20) {
+    return("très faible")
+  }
+  if (k <= 0.40) {
+    return("faible")
+  }
+  if (k <= 0.60) {
+    return("modéré")
+  }
+  if (k <= 0.80) {
+    return("fort")
+  }
+  return("presque parfait")
 }
 
 file.choose2 <- function(...) {

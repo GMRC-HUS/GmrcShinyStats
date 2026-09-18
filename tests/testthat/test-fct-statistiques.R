@@ -114,3 +114,28 @@ test_that("table_crossed parses a valid 2x2 and rejects invalid input", {
   expect_null(table_crossed(0, 2, "1 2"))         # invalid dimension
   expect_null(table_crossed(2, 2, ""))            # empty
 })
+
+test_that("interpretation_kappa maps a Kappa value to its Landis-Koch class", {
+  expect_equal(interpretation_kappa(0.10), "très faible")
+  expect_equal(interpretation_kappa(0.20), "très faible")
+  expect_equal(interpretation_kappa(0.30), "faible")
+  expect_equal(interpretation_kappa(0.40), "faible")
+  expect_equal(interpretation_kappa(0.50), "modéré")
+  expect_equal(interpretation_kappa(0.60), "modéré")
+  expect_equal(interpretation_kappa(0.70), "fort")
+  expect_equal(interpretation_kappa(0.80), "fort")
+  expect_equal(interpretation_kappa(0.90), "presque parfait")
+  expect_equal(interpretation_kappa(NA), "indéterminée")
+})
+
+test_that("theme_gmrc returns a ggplot2 theme", {
+  expect_s3_class(theme_gmrc(), "theme")
+})
+
+test_that("export_png renders a plot to a PNG file", {
+  f <- tempfile(fileext = ".png")
+  export_png(f, function() hist(rnorm(20)))
+  expect_true(file.exists(f))
+  expect_true(file.info(f)$size > 500)
+  unlink(f)
+})

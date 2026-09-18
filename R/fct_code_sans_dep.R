@@ -1784,11 +1784,11 @@ ggsurv <- function(s, CI = 'def', plot.cens = T, surv.col = 'gg.def',           
                                   cens.col, lty.est, lty.ci,
                                   cens.shape, back.white, xlab,
                                   ylab, main) 
-  } else {ggsurv.m(s, CI, plot.cens, surv.col ,
-                   cens.col, lty.est, lty.ci,
-                   cens.shape, back.white, xlab,
-                   ylab, main)}
-  pl
+   } else {ggsurv.m(s, CI, plot.cens, surv.col ,
+                    cens.col, lty.est, lty.ci,
+                    cens.shape, back.white, xlab,
+                    ylab, main)}
+   pl + theme_gmrc()
 }
 
 
@@ -2250,7 +2250,7 @@ ggboxplot<-function(x,y,Groupe=NULL)
       p <- ggplot(DDD,aes(factor(y),x,fill=factor(Groupe))	)+xlab(nomy)+ylab(nomx)
     }
   titre<-paste(nomx,"en fonction de",nomy)
-  return(p + geom_boxplot()  + ggtitle(titre)+ scale_x_discrete(labels=levels(y)))
+  return(p + geom_boxplot()  + ggtitle(titre)+ scale_x_discrete(labels=levels(y))+theme_gmrc())
 }
 
 
@@ -2264,7 +2264,7 @@ ggcompar<-function(x,y, DDD= NULL)
   titre<-paste("Distributions de",x,"en fonction de",y)
   DDD[,2]<- as.factor(DDD[,2])
   return(
-    ggplot(DDD,aes(x=DDD[,1], fill=DDD[,2])) + geom_density(alpha=.3)+ ggtitle(titre)+xlab(x)+   guides(fill = guide_legend(title = y))
+    ggplot(DDD,aes(x=DDD[,1], fill=DDD[,2])) + geom_density(alpha=.3)+ ggtitle(titre)+xlab(x)+   guides(fill = guide_legend(title = y))+theme_gmrc()
   )
 }
 
@@ -2279,8 +2279,8 @@ ggpoints<-function(x,y,droite=0,nomx= NULL,nomy=NULL)
     DDD                     <- data.frame(cbind(y,x))
     c                       <- ggplot(DDD, aes(x, y))
     #x11()
-    if(droite==1){        return(c + stat_smooth(method = "lm") + geom_point() +xlab(nomx)+ylab(nomy)) }
-    else{  	if(droite==0){        return(c +                              geom_point() +xlab(nomx)+ylab(nomy)) }}
+    if(droite==1){        return(c + stat_smooth(method = "lm") + geom_point() +xlab(nomx)+ylab(nomy)+theme_gmrc()) }
+    else{  	if(droite==0){        return(c +                              geom_point() +xlab(nomx)+ylab(nomy)+theme_gmrc()) }}
     if(droite!=0 & droite!=1){return("Mauvaise valeur pour l'option droite")}} else{   return("Les longueurs des vecteurs ne sont pas egales")}
   options(warn=0)                 
 }
@@ -2337,7 +2337,7 @@ ggsurvie<-function(x,y,groups=0,latex=0,titre=0)
   if(titre!=0 & titre!=1){titre.ss.groupe<-titre.ac.groupe<-titre}
   
   if(situation==1){		surv2 		<- survfit(Surv(x,y) ~ 1)
-  plot2 		<- ggsurv(surv2,main=titre.ss.groupe)+ylim(0,1)
+  plot2 		<- ggsurv(surv2,main=titre.ss.groupe,xlab="Délai",ylab="Probabilité de survie")+ylim(0,1)
   print(plot2+ylim(0,1))
   print(surv2)
   print(summary(surv2))
@@ -2345,7 +2345,7 @@ ggsurvie<-function(x,y,groups=0,latex=0,titre=0)
   
   if(situation==2){		Groupe		<- groups
   surv2 		<- survfit(Surv(x,y) ~ Groupe)
-  plot2 		<- ggsurv(surv2,main=titre.ac.groupe)+ylim(0,1)
+  plot2 		<- ggsurv(surv2,main=titre.ac.groupe,xlab="Délai",ylab="Probabilité de survie")+ylim(0,1)
   
   print(plot2+ylim(0,1))
   print(surv2)
@@ -2354,16 +2354,16 @@ ggsurvie<-function(x,y,groups=0,latex=0,titre=0)
   }
   
   if(situation==3){		surv2 		<- survfit(Surv(x,y) ~ 1)
-  plot2 		<- ggsurv(surv2,main=titre.ss.groupe)+ylim(0,1)
+  plot2 		<- ggsurv(surv2,main=titre.ss.groupe,xlab="Délai",ylab="Probabilité de survie")+ylim(0,1)
   print(plot2+ylim(0,1))
   DETAIL		<-cbind(surv2 $ time , surv2 $ n.risk,  surv2 $ n.event,  surv2 $ n.censor, surv2$surv ,surv2 $ std.err  ,surv2 $ upper,surv2 $ lower   )
   colnames(DETAIL)	<-c("time","n.risk","n.event","n.censor","surv","std.err","upper95%","lower95%")
   print(xtable(DETAIL))
   }
   
-  if(situation==4){		Groupe		<- groups
-   surv2 		<- survfit(Surv(x,y) ~ Groupe)
-   plot2 		<- ggsurv(surv2,main=titre.ac.groupe)+ylim(0,1)
+   if(situation==4){		Groupe		<- groups
+    surv2 		<- survfit(Surv(x,y) ~ Groupe)
+    plot2 		<- ggsurv(surv2,main=titre.ac.groupe,xlab="Délai",ylab="Probabilité de survie")+ylim(0,1)
    print(plot2+ylim(0,1))
    DETAIL		<-cbind(surv2 $ time , surv2 $ n.risk,  surv2 $ n.event,  surv2 $ n.censor, surv2$surv ,surv2 $ std.err  ,surv2 $ upper,surv2 $ lower   )
    colnames(DETAIL)	<-c("time","n.risk","n.event","n.censor","surv","std.err","upper95%","lower95%")
@@ -2478,10 +2478,11 @@ ggbars<-function(Y,X="Variable"){
   G<-as.factor(rep(levels(as.factor(X)),dim(prop.table(table(X,Y),1))[2]))
   D<-data.frame(pc,Groupe,G)
   
-  graph <- ggplot(data=D, aes(x=G, y=pc,fill=Groupe)) +                  
+  graph <- ggplot(data=D, aes(x=G, y=pc,fill=Groupe)) +
     geom_bar(stat="identity",position = "dodge",ymax=100) + xlab(nomX)+ ylab("%")+
-    geom_text(aes(label =paste(round(pc*100,0),"%",sep=""),ymax=0),position=position_dodge(width=0.9), vjust=-0.25)
-  
-  return(graph) 
+    geom_text(aes(label =paste(round(pc*100,0),"%",sep=""),ymax=0),position=position_dodge(width=0.9), vjust=-0.25)+
+    theme_gmrc()
+
+  return(graph)
   
 }

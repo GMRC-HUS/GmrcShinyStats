@@ -67,12 +67,14 @@ mod_Survie_server <- function(id, r){
                                                         effectuée, la courbe est présentée dans son intervalle de confiance à 95%. Si une comparaison est demandée, le graphique présente
                                                         la courbe de Kaplan-Meier dans chacun des groupes."),
             plotOutput(ns('plotSURVIE')),
+            downloadButton(ns('pngPLOT_SURVIE'), label = "Télécharger la courbe (PNG)", class = "butt"),
             tags$br(),
             p("Le détail des données utilisées pour la construction de cette ou ces courbes est présenté ci-dessous. Dans le cas
                                                         d'une comparaison entre plusieurs groupes, le détail est présenté par groupes, un test d'égalité de l'ensemble des courbes est 
                                                         présenté (Test du Log-Rank) et les résultats sont affichés au bas de cette page."),
             h3("Valeurs numériques de survie: analyses détaillées"),
-            tableOutput(ns("sortieSURVIE2")))# fin MainPanel
+            tableOutput(ns("sortieSURVIE2")),
+            downloadButton(ns('csvSURVIE'), label = "Télécharger le tableau de survie (CSV)", class = "butt"))# fin MainPanel
           
         )# fin sidebarlayout
       )# fin fluidpage
@@ -111,14 +113,19 @@ mod_Survie_server <- function(id, r){
       selectInput(ns("variablesurvie3"), "Variable groupe",   choices=noms2) 
     })
     
+    dessinerPLOT_SURVIE <- function() {
+      base            <- r$BDD
+      variablesurvie1 <- base[, colnames(base) == input$variablesurvie1]
+      variablesurvie2 <- base[, colnames(base) == input$variablesurvie2]
+      variablesurvie3 <- base[, colnames(base) == input$variablesurvie3]
+      if (input$SURVIEcompar) {
+        ggsurvie(variablesurvie1, variablesurvie2, variablesurvie3)
+      } else {
+        ggsurvie(variablesurvie1, variablesurvie2)
+      }
+    }
     output$plotSURVIE <- renderPlot({
-      base    <-r$BDD
-      
-      variablesurvie1 <-base[,colnames(base)==input$variablesurvie1]
-      variablesurvie2 <-base[,colnames(base)==input$variablesurvie2]
-      variablesurvie3 <-base[,colnames(base)==input$variablesurvie3]
-      if(!input$SURVIEcompar){    ggsurvie(variablesurvie1,variablesurvie2      ) }
-      if( input$SURVIEcompar){    ggsurvie(variablesurvie1,variablesurvie2,variablesurvie3 ) }
+      dessinerPLOT_SURVIE()
     })
     
     
@@ -130,6 +137,27 @@ mod_Survie_server <- function(id, r){
       if(input$SURVIEcompar){    tab_survie(variablesurvie1,variablesurvie2,variablesurvie3) }
       else{                       tab_survie(variablesurvie1,variablesurvie2) }
     }, rownames=FALSE)
+
+    output$pngPLOT_SURVIE <- downloadHandler(
+      filename = function() paste0("survie_", input$variablesurvie1, ".png"),
+      content = function(file) export_png(file, dessinerPLOT_SURVIE)
+    )
+
+    output$csvSURVIE <- downloadHandler(
+      filename = function() paste0("survie_", input$variablesurvie1, ".csv"),
+      content = function(file) {
+        base <- r$BDD
+        variablesurvie1 <- base[, colnames(base) == input$variablesurvie1]
+        variablesurvie2 <- base[, colnames(base) == input$variablesurvie2]
+        if (input$SURVIEcompar) {
+          variablesurvie3 <- base[, colnames(base) == input$variablesurvie3]
+          DETAIL <- tab_survie(variablesurvie1, variablesurvie2, variablesurvie3)
+        } else {
+          DETAIL <- tab_survie(variablesurvie1, variablesurvie2)
+        }
+        write.csv(DETAIL, file, row.names = FALSE)
+      }
+    )
     
     })
     
