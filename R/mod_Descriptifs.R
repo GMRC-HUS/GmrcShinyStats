@@ -83,7 +83,7 @@ mod_Descriptifs_server <- function(id,r){
                                                                          downloadButton(ns('PDFdescriptif1o1'),label="AIDE et Détails",class = "butt")
                                                              )
                                                            ),#finFluidRow
-                                                           tags$head(tags$style(".butt{background-color:#E9967A;} .butt{color: black;}")),
+
                                                            verbatimTextOutput (ns("tableauBASE")),
                                                            plotOutput(ns('plotNAbase1'))),
                                                   tabPanel("Données manquantes cumulées par variable",
@@ -94,7 +94,7 @@ mod_Descriptifs_server <- function(id,r){
                                                              )
                                                            ),#finFluidRow
                                                            
-                                                           tags$head(tags$style(".butt{background-color:#E9967A;} .butt{color: black;}")),
+
                                                            h4("Descriptif cumulé des données manquantes par variable",align="center"),
                                                            p("On représente ci-dessous les données manquantes en proportions par variable étudiée."),
                                                            plotOutput(ns('plotNAbase2')),
@@ -107,7 +107,7 @@ mod_Descriptifs_server <- function(id,r){
                                                              )
                                                            ),#finFluidRow
                                                            
-                                                           tags$head(tags$style(".butt{background-color:#E9967A;} .butt{color: black;}")),
+
                                                            h4("Descriptif cumulé des données manquantes par sujet",align="center"),
                                                            p("On représente ci-dessous les données manquantes en proportions par sujet d'étude."),
                                                            plotOutput(ns('plotNAbase3')),

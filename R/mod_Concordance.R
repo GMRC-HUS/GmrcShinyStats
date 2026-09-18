@@ -70,7 +70,7 @@ mod_Concordance_server <- function(id,r){
               )
             ),#finFluidRow
             
-            tags$head(tags$style(".butt{background-color:#E9967A;} .butt{color: black;}")),
+
             h3("Tableau croisé"),
             p("On présente ci-dessous le tableau croisé des lectures réalisées :"),
             tableOutput(ns('mytableCONCORDANCE1')),br(),
@@ -122,7 +122,7 @@ mod_Concordance_server <- function(id,r){
               )
             ),#finFluidRow
             
-            tags$head(tags$style(".butt{background-color:#E9967A;} .butt{color: black;}")),
+
             h3("Tableau croisé"),
             p("On présente ci-dessous le tableau croisé des lectures réalisées:"),
             tableOutput(ns('mytableCONCORDANCE2')),br(),

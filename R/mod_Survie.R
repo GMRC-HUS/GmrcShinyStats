@@ -61,7 +61,7 @@ mod_Survie_server <- function(id, r){
               )
             ),#finFluidRow
             
-            tags$head(tags$style(".butt{background-color:#E9967A;} .butt{color: black;}")),
+
             h3("Courbe(s) de Kaplan-Meier"),
             p("La courbe de survie associée aux variables selectionnées est présentée ci-dessous. Si aucune comparaison entre groupes n'est
                                                         effectuée, la courbe est présentée dans son intervalle de confiance à 95%. Si une comparaison est demandée, le graphique présente

@@ -8,9 +8,6 @@
 #'
 #' @importFrom shiny NS tagList 
 mod_Redaction_ui <- function(id){
-  ns <- NS(id)
-  tagList(
-  )
   dashboardPage(dashboardHeader(title = "Rédaction"),
                 dashboardSidebar(conditionalPanel(
                   condition = "!input.sidebarCollapsed",

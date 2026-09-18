@@ -41,8 +41,8 @@ mod_Tests_server <- function(id,r){
                             
                             
                             
-                            fluidPage(
-                              title = 'Examples of DataTables',
+                             fluidPage(
+                               title = 'Test diagnostique univarié',
                               sidebarLayout(
                                 sidebarPanel(
                                   p("Sélectionnez la variable qualitative codée 0 ou 1 à expliquer."),
@@ -62,7 +62,7 @@ mod_Tests_server <- function(id,r){
                                     )
                                   ),#finFluidRow
                                   
-                                  tags$head(tags$style(".butt{background-color:#E9967A;} .butt{color: black;}")),
+
                                   navbarPage(title=NULL,
                                              id='datasetlogit',
                                              tabPanel('Variables sélectionnées',
@@ -95,9 +95,9 @@ mod_Tests_server <- function(id,r){
                                                       tableOutput(ns('LogitPERFtableauBEST')),br(),
                                                       h4("Pour un tel seuil le tableau croisé devient:"),
                                                       tableOutput(ns('LogitPERF3')),br(),
-                                                      h4("La sensibilité et la specificité sont:"),
-                                                      tableOutput(ns('LogitPERF1')),br(),
-                                                      h4("La critères de performances sont alors"),
+                                                       h4("La sensibilité et la spécificité sont:"),
+                                                       tableOutput(ns('LogitPERF1')),br(),
+                                                       h4("Les critères de performance sont alors :"),
                                                       tableOutput(ns('LogitPERF2')),
                                                       p("Attention, si l'évènement est associé à une mesure inférieure au cut, la lecture des VP, VN, FP, FN, VPP et VPN est inversée dans ce dernier tableau. 
                                                                              Il faut alors se référer au tableau à 4 cases sur le haut de cette page."),br()

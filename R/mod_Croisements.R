@@ -37,62 +37,6 @@ mod_Croisements_server <- function(id, r){
                                     
                                     
                                     fluidPage( #includeCSS("./www/tables.css"),
-                                      tags$head(
-                                        tags$style(HTML("
-.pure-table {
-    /* Remove spacing between table cells (from Normalize.css) */
-    border-collapse: collapse;
-    border-spacing: 0;
-    empty-cells: show;
-    border: 1px solid #cbcbcb;
-	text-align: center;
-}
-
-.pure-table caption {
-    color: #000;
-    font: italic 85%/1 arial, sans-serif;
-    padding: 1em 0;
-    text-align: center;
-}
-
-.pure-table td,
-.pure-table th {
-    border-left: 1px solid #cbcbcb;/*  inner column border */
-    border-bottom: 1px solid #cbcbcb;
-
-    font-size: inherit;
-    margin: 0;
-    overflow: visible; /*to make ths where the title is really long work*/
-    padding: 0.5em 1em; /* cell padding */
-	text-align: center;
-}
-
-.pure-table tr:hover {background-color: #f5f5f5}
-
-/* Consider removing this next declaration block, as it causes problems when
-there's a rowspan on the first cell. Case added to the tests. issue#432 */
-.pure-table td:first-child,
-.pure-table th:first-child {
-    border-left-width: 0;
-}
-
-.pure-table thead {
-    background-color: #e0e0e0;
-    color: #000;
-    text-align: left;
-    vertical-align: bottom;
-}
-
-/*
-striping:
-   even - #fff (white)
-   odd  - #f2f2f2 (light gray)
-*/
-.pure-table td {
-    background-color: transparent;
-}
-"))
-                                      ),
                                                titlePanel("Analyses descriptives croisées"),
                                                sidebarLayout( 
                                                  sidebarPanel(
@@ -110,7 +54,7 @@ striping:
                                                    conditionalPanel(
                                                      condition = "input.qualiquantiCROISE1 == 'qual' && input.qualiquantiCROISE2 == 'qual'",
                                                      radioButtons(ns('NATableau'), 
-                                                                  "Afficher les données manquante",
+                                                                   "Afficher les données manquantes",
                                                                   c(Non="no", Oui='always'),
                                                                   "no"))
                                                    
@@ -125,8 +69,7 @@ striping:
                                                      )
                                                    ),#finFluidRow
                                                    
-                                                   tags$head(tags$style(".butt{background-color:#E9967A;} .butt{color: black;}")),
-                                                   h3("Représentation graphique du lien entre les deux variables"),
+                                                    h3("Représentation graphique du lien entre les deux variables"),
                                                    plotOutput(ns('plotCROISE' )),
                                                    # debut conditionnal panel QualiQuali
                                                    conditionalPanel(

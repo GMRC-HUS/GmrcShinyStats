@@ -152,17 +152,17 @@ app_ui <- function(request) {
       "G.M.R.C.",
                 tabPanel("Avec une base de données",
                          dashboardPage(
-                           dashboardHeader(title = "Base de données"),
+                            dashboardHeader(title = tagList(img(src = "www/logo1.png", height = "30px"), "Base de données")),
                                        dashboardSidebar(
                                          sidebarMenu(
                                           #shinythemes::themeSelector(),
-                                           menuItem("Accueil", tabName = "accueil", icon = icon("fa-light fa-star",verify_fa = FALSE)),
-                                           menuItem("Base de données", tabName = "base", icon = icon("fa-light fa-database",verify_fa = FALSE)),
-                                           menuItem("Descriptif", tabName = "descriptif", icon = icon("fa-light fa-percent",verify_fa = FALSE)),
-                                           menuItem("Croisements/Inférence", tabName = "croisements", icon = icon("fa-light fa-dice",verify_fa = FALSE)),
-                                           menuItem("Analyse de survie", tabName = "survie", icon = icon("fa-light fa-skull-crossbones",verify_fa = FALSE)),
-                                           menuItem("Tests diagnostiques", tabName = "tests", icon = icon("fa-light fa-vial",verify_fa = FALSE)),
-                                           menuItem("Concordance", tabName = "concordance", icon = icon("fa-light fa-equals",verify_fa = FALSE))
+                                            menuItem("Accueil", tabName = "accueil", icon = icon("fa-star", verify_fa = FALSE)),
+                                            menuItem("Base de données", tabName = "base", icon = icon("fa-database", verify_fa = FALSE)),
+                                            menuItem("Descriptif", tabName = "descriptif", icon = icon("fa-percent", verify_fa = FALSE)),
+                                            menuItem("Croisements/Inférence", tabName = "croisements", icon = icon("fa-dice", verify_fa = FALSE)),
+                                            menuItem("Analyse de survie", tabName = "survie", icon = icon("fa-skull-crossbones", verify_fa = FALSE)),
+                                            menuItem("Tests diagnostiques", tabName = "tests", icon = icon("fa-vial", verify_fa = FALSE)),
+                                            menuItem("Concordance", tabName = "concordance", icon = icon("fa-equals", verify_fa = FALSE))
                                          )
                                        ),
                                        dashboardBody(
@@ -252,6 +252,7 @@ golem_add_external_resources <- function() {
 
   tags$head(
     favicon(),
+    tags$style(src = "www/custom.css"),
     # bundle_resources(
     #   path =  system.file('app/www', package = 'GmrcShinyStats'),
     #   app_title = "GmrcShinyStats"
