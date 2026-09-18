@@ -29,7 +29,8 @@ usethis::use_package( "shiny" )
 usethis::use_package( "shinydashboard" )
 usethis::use_package( "shinyFiles" )
 usethis::use_package( "irr" )
-usethis::use_package( "gdata" )
+# gdata removed (archived from CRAN): the former gdata::reorder.factor() call
+# is now replaced by the internal reorder_factor_levels() helper.
 usethis::use_package( "boot" )
 usethis::use_package( "xtable" )
 usethis::use_package( "dplyr" )

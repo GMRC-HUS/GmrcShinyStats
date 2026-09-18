@@ -26,7 +26,9 @@ app_server <- function(input, output, session) {
   mod_Accueil_server("Accueil_1")
   mod_Descriptifs_server("Descriptifs_1",r)
   
-  mod_SaisieManuelle_server("SaisieManuelle_1")
+  mod_SaisieManuelle_server("SaisieManuelle_1", r)
+  mod_Redaction_server("Redaction_1")
+  mod_Historique_server("Historique_1",r)
   
   #callModule(mod_Descriptifs_server,id = "select",session = session, r = r)
 }

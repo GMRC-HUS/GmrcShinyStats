@@ -18,8 +18,8 @@ mod_SaisieManuelle_ui <- function(id){
                   sidebarMenu(
                     conditionalPanel(
                       condition = "!input.sidebarCollapsed",
-                    numericInput(ns("NbLignesMAIN"), tags$p("Nombre de lignes",style = "color:white"), 2),
-                    numericInput(ns("NbcolonnesMAIN"), tags$p("Nombre de colonnes",style = "color:white"), 2),
+                    numericInput(ns("NbLignesMAIN"), tags$p("Nombre de lignes",style = "color:white"), 2, min = 1),
+                    numericInput(ns("NbcolonnesMAIN"), tags$p("Nombre de colonnes",style = "color:white"), 2, min = 1),
                     tags$p("   Entrez les valeurs agrégées du"),
                     tags$p("tableau, séparées par un espace"),
                     tags$p("(remplissage en colonne)."),
@@ -33,9 +33,10 @@ mod_SaisieManuelle_ui <- function(id){
                     condition = "input.sidebarCollapsed",
                     tags$p(tags$b("Pour modifier la saisie de votre tableau, dépliez la barre latérale."), style="font-size:17px; color:coral")),
 
-                      tags$h3("Tableau croisé",align = "left",style = "color:#08088A"),
-                      tags$p("On présente ci-dessous le tableau croisé des deux variables:"),
-                      fluidRow(
+                       tags$h3("Tableau croisé",align = "left",style = "color:#08088A"),
+                       tags$p("On présente ci-dessous le tableau croisé des deux variables:"),
+                       textOutput(ns("msgTableau")),
+                       fluidRow(
                         splitLayout(cellWidths = c("30%","30%","30%"), 
                                     tableOutput(ns('montableauCroisemanuel')), 
                                     tableOutput(ns('montableauCroisemanuel2')),
@@ -92,7 +93,7 @@ mod_SaisieManuelle_ui <- function(id){
 #' SaisieManuelle Server Functions
 #'
 #' @noRd 
-mod_SaisieManuelle_server <- function(id){
+mod_SaisieManuelle_server <- function(id, r){
   moduleServer( id, function(input, output, session){
     ns <- session$ns
     
@@ -104,13 +105,67 @@ mod_SaisieManuelle_server <- function(id){
     
     
     ########################################################################################################################
-    ####    SAISIE MANUELLE ONGLET 1         
+    ####    SAISIE MANUELLE ONGLET 1
     ########################################################################################################################
-    
+
+    matriceMAIN <- reactive({
+      table_crossed(input$NbLignesMAIN, input$NbcolonnesMAIN, input$TableauMAIN1)
+    })
+
+    observeEvent(matriceMAIN(), ignoreInit = TRUE, {
+      Mat <- matriceMAIN()
+      if (is.null(Mat)) {
+        return(invisible(NULL))
+      }
+      ch2p <- tryCatch(suppressWarnings(chisq.test(Mat, correct = FALSE)$p.value),
+                       error = function(e) NA)
+      fishe <- tryCatch(suppressWarnings(fisher.test(Mat)$p.value),
+                       error = function(e) NA)
+      enregistrer_resultat(r, "Saisie manuelle",
+                           paste("Tableau croisé", dim(Mat)[1], "×", dim(Mat)[2]),
+                           paste("χ² p =", round(ch2p, 3),
+                                 "; Fisher p =", round(fishe, 3)))
+    })
+
+    observeEvent(c(input$Concoman1, input$Concoman2), ignoreInit = TRUE, {
+      if (is.null(input$Concoman1) || is.null(input$Concoman2)) {
+        return(invisible(NULL))
+      }
+      if (input$Concoman1 == "" || input$Concoman2 == "") {
+        return(invisible(NULL))
+      }
+      x <- as.factor(strsplit(input$Concoman1, " ")[[1]])
+      y <- as.factor(strsplit(input$Concoman2, " ")[[1]])
+      if (length(x) != length(y) || length(x) == 0) {
+        return(invisible(NULL))
+      }
+      Mat2 <- cbind(x, y)
+      Mat2 <- Mat2[complete.cases(Mat2), ]
+      if (nrow(Mat2) == 0) {
+        return(invisible(NULL))
+      }
+      kk <- tryCatch(suppressWarnings(kappa2(Mat2)), error = function(e) NULL)
+      if (is.null(kk)) {
+        return(invisible(NULL))
+      }
+      enregistrer_resultat(r, "Saisie manuelle",
+                           "Concordance entre deux lecteurs (saisie manuelle)",
+                           paste("Kappa =", round(kk$value, 3),
+                                 "; p =", round(kk$p.value, 3),
+                                 "; interprétation :", interpretation_kappa(kk$value)))
+    })
+
+    output$msgTableau <- renderText({
+      if(is.null(matriceMAIN()))
+        "Le tableau est invalide : vérifiez le nombre de lignes/colonnes et saisissez des entiers positifs séparés par un espace (remplissage par colonne)."
+      else ""
+    })
+
     output$montableauCroisemanuel <- renderTable({
       Nblignes   <-input$NbLignesMAIN
       Nbcolonnes <-input$NbcolonnesMAIN
-      Matrice    <- addmargins(matrix(as.numeric(strsplit(input$TableauMAIN1," ")[[1]]),ncol=Nbcolonnes,nrow=Nblignes))
+      Matrice0   <- matriceMAIN(); if(is.null(Matrice0)) return(NULL)
+      Matrice    <- addmargins(Matrice0)
       colnames(Matrice)<-c(  paste("Y",1:Nbcolonnes -1 ) , "Total")
       rownames(Matrice)<-c(  paste("X",1:Nblignes -1 ) , "Total")
       Matrice },digits=0, caption = "Tableau des effectifs",
@@ -120,7 +175,8 @@ mod_SaisieManuelle_server <- function(id){
     output$montableauCroisemanuel2 <- renderTable({
       Nblignes   <-input$NbLignesMAIN
       Nbcolonnes <-input$NbcolonnesMAIN
-      Matrice    <- round(addmargins(100 * prop.table(addmargins(matrix(as.numeric(strsplit(input$TableauMAIN1," ")[[1]]),ncol=Nbcolonnes,nrow=Nblignes), 1), 1), 2), 2)
+      Matrice0   <- matriceMAIN(); if(is.null(Matrice0)) return(NULL)
+      Matrice    <- round(addmargins(100 * prop.table(addmargins(Matrice0, 1), 1), 2), 2)
       colnames(Matrice)<-c(  paste("Y",1:Nbcolonnes -1 ) , "Total")
       rownames(Matrice)<-c(  paste("X",1:Nblignes -1 ) , "Total")
       Matrice
@@ -131,7 +187,8 @@ mod_SaisieManuelle_server <- function(id){
     output$montableauCroisemanuel3 <- renderTable({
       Nblignes   <-input$NbLignesMAIN
       Nbcolonnes <-input$NbcolonnesMAIN
-      Matrice    <- round(addmargins(100 * prop.table(addmargins(matrix(as.numeric(strsplit(input$TableauMAIN1," ")[[1]]),ncol=Nbcolonnes,nrow=Nblignes), 2), 2), 1), 2)
+      Matrice0   <- matriceMAIN(); if(is.null(Matrice0)) return(NULL)
+      Matrice    <- round(addmargins(100 * prop.table(addmargins(Matrice0, 2), 2), 1), 2)
       colnames(Matrice)<-c(  paste("Y",1:Nbcolonnes -1 ) , "Total")
       rownames(Matrice)<-c(  paste("X",1:Nblignes -1 ) , "Total")
       Matrice
@@ -142,7 +199,8 @@ mod_SaisieManuelle_server <- function(id){
     output$MAINtableCHI2 <- renderTable({
       Nblignes   <-input$NbLignesMAIN
       Nbcolonnes <-input$NbcolonnesMAIN
-      Mat<-matrix(as.numeric(strsplit(input$TableauMAIN1," ")[[1]]),ncol=Nbcolonnes,nrow=Nblignes)
+      Mat0<-matriceMAIN(); if(is.null(Mat0)) return(NULL)
+      Mat<-Mat0
       
       CH2<-chisq.test(Mat,correct=FALSE)
       resTESTS<-cbind(CH2$statistic,CH2$parameter,CH2$ p.value)
@@ -154,7 +212,8 @@ mod_SaisieManuelle_server <- function(id){
     output$MAINtableFISHER <- renderTable({
       Nblignes   <-input$NbLignesMAIN
       Nbcolonnes <-input$NbcolonnesMAIN
-      Mat<-matrix(as.numeric(strsplit(input$TableauMAIN1," ")[[1]]),ncol=Nbcolonnes,nrow=Nblignes)
+      Mat0<-matriceMAIN(); if(is.null(Mat0)) return(NULL)
+      Mat<-Mat0
       
       FI2<-fisher.test(Mat)
       resTESTS<-t(t( FI2$ p.value))
@@ -168,7 +227,8 @@ mod_SaisieManuelle_server <- function(id){
       Nblignes   <-input$NbLignesMAIN
       Nbcolonnes <-input$NbcolonnesMAIN
       
-      Mat<-matrix(as.numeric(strsplit(input$TableauMAIN1," ")[[1]]),ncol=Nbcolonnes,nrow=Nblignes)
+      Mat0<-matriceMAIN(); if(is.null(Mat0)) return(NULL)
+      Mat<-Mat0
       
       CH2<-chisq.test(Mat,correct=FALSE)
       FI2<-fisher.test(Mat)
@@ -180,7 +240,8 @@ mod_SaisieManuelle_server <- function(id){
       Nblignes   <-input$NbLignesMAIN
       Nbcolonnes <-input$NbcolonnesMAIN
       if(Nblignes>2 | Nbcolonnes>2){OR<-NULL}else{
-        Mat<-matrix(as.numeric(strsplit(input$TableauMAIN1," ")[[1]]),ncol=Nbcolonnes,nrow=Nblignes)
+        Mat0<-matriceMAIN(); if(is.null(Mat0)) return(NULL)
+      Mat<-Mat0
         FI2<-fisher.test(Mat)
         OR<-cbind(FI2$ estimate , FI2$ conf.int[[1]],FI2$ conf.int[[2]])
         colnames(OR)<-c("Rapport de cotes","Borne inf 2.5","Borne Sup 97.5")
@@ -197,7 +258,8 @@ mod_SaisieManuelle_server <- function(id){
       Nblignes   <-input$NbLignesMAIN
       Nbcolonnes <-input$NbcolonnesMAIN
       if(Nblignes>2 | Nbcolonnes>2){res<-NULL}else{
-        Mat<-matrix(as.numeric(strsplit(input$TableauMAIN1," ")[[1]]),ncol=Nbcolonnes,nrow=Nblignes)
+        Mat0<-matriceMAIN(); if(is.null(Mat0)) return(NULL)
+      Mat<-Mat0
         
         x<-rep(c(0,1),c(Mat[1,1]+Mat[1,2],Mat[2,1]+Mat[2,2]))
         y<-rep(c(0,1,0,1),c(Mat[1,1],Mat[1,2],Mat[2,1],Mat[2,2]))
@@ -217,7 +279,8 @@ mod_SaisieManuelle_server <- function(id){
       Nblignes   <-input$NbLignesMAIN
       Nbcolonnes <-input$NbcolonnesMAIN
       if(Nblignes>2 | Nbcolonnes>2){Res<-NULL}else{
-        Mat<-matrix(as.numeric(strsplit(input$TableauMAIN1," ")[[1]]),ncol=Nbcolonnes,nrow=Nblignes)
+        Mat0<-matriceMAIN(); if(is.null(Mat0)) return(NULL)
+      Mat<-Mat0
         ICdiff<-IC.diff.prop(Mat[1,2], Mat[1,1]+Mat[1,2],Mat[2,2], Mat[2,1]+Mat[2,2], alpha01 = 0.5, alpha02 = 0.5, beta01 = 0.5,beta02 = 0.5, val = 0.95)
         Res<-100*cbind(ICdiff$Estimation,ICdiff$IC[3,1],ICdiff$IC[3,2])
         colnames(Res)<-c("Différence de proportions","Borne 2.5","Borne 97.5")
@@ -231,11 +294,11 @@ mod_SaisieManuelle_server <- function(id){
     
     
     output$KappaMAIN <- renderTable({
-      library(boot)
       Nblignes   <-input$NbLignesMAIN
       Nbcolonnes <-input$NbcolonnesMAIN
       
-      Mat<-matrix(as.numeric(strsplit(input$TableauMAIN1," ")[[1]]),ncol=Nbcolonnes,nrow=Nblignes)
+      Mat0<-matriceMAIN(); if(is.null(Mat0)) return(NULL)
+      Mat<-Mat0
       # une fonction pour transfo la table contingence en BDD
       countsToCases <- function(x, countcol = "Freq") {
         idx <- rep.int(seq_len(nrow(x)), x[[countcol]])
@@ -259,7 +322,8 @@ mod_SaisieManuelle_server <- function(id){
       Nblignes   <-input$NbLignesMAIN
       Nbcolonnes <-input$NbcolonnesMAIN
       
-      Mat<-matrix(as.numeric(strsplit(input$TableauMAIN1," ")[[1]]),ncol=Nbcolonnes,nrow=Nblignes)
+      Mat0<-matriceMAIN(); if(is.null(Mat0)) return(NULL)
+      Mat<-Mat0
       # une fonction pour transfo la table contingence en BDD
       countsToCases <- function(x, countcol = "Freq") {
         idx <- rep.int(seq_len(nrow(x)), x[[countcol]])
@@ -322,7 +386,7 @@ mod_SaisieManuelle_server <- function(id){
       Mat2[,2]				<-as.factor(Mat2[,2])
       levels(Mat2[,1])	<- c(levels(Mat2[,1]),LEV[!is.element(LEV,levels(Mat2[,1]))]      )
       levels(Mat2[,2])	<- c(levels(Mat2[,2]),LEV[!is.element(LEV,levels(Mat2[,2]))]      )
-      Mat2[,1]<-reorder.factor(Mat2[,1], new.order=levels(Mat2[,2]))
+      Mat2[,1]<-reorder_factor_levels(Mat2[,1], new.order=levels(Mat2[,2]))
       
       if(all(Mat2[,1]==Mat2[,2])){RESULTAT<-c(1,1,1)}else{
         lkappa.boot <- function(data,x) {suppressWarnings(kappa2(data[x,]))$value}

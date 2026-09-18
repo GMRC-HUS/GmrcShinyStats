@@ -7,3 +7,5 @@ $run_dev.*
 ^golem_history\.R$
 ^app\.R$
 ^rsconnect$
+^\.github$
+^ExempleCSV\.csv$

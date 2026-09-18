@@ -30,9 +30,10 @@ mod_Accueil_ui <- function(id){
       mainPanel(
         tags$h2("G.M.R.C. Shiny Stats",align = "center",style = "color:#08088A; font-family: Georgia; font-size : 40px;"),
         tags$h2("Descriptifs et analyses statistiques",align = "center",style = "color:#08088A; font-family: Georgia; font-size : 30px;"),
+        tags$p(paste("Version de l'application :", as.character(packageVersion("GmrcShinyStats"))), style="text-align: center; color:#08088A; font-family: Georgia;"),
         tags$br(),
         tags$p("Cette application est proposée par le Groupe Méthode en Recherche Clinique des hôpitaux universitaires de Strasbourg, pour le descriptif de variables quantitatives et qualitatives de votre base de données.
-                                             Les onglets dans la barre latérale de cette page sont à parcourir dans le sens de lecture. Une base de données saisie dans un tableau (Excel, OppenOffice) devra être chargée sur la page avant toute utilisation des onglets statistiques.
+                                             Les onglets dans la barre latérale de cette page sont à parcourir dans le sens de lecture. Une base de données saisie dans un tableau (Excel, OpenOffice) devra être chargée sur la page avant toute utilisation des onglets statistiques.
                                              Une fois la base de données chargée dans la mémoire de l'application,
                                              vous serez en mesure de réaliser des descriptifs complets ainsi que des analyses graphiques de l'ensemble de vos variables,
                                              qu'elles soient de nature qualitative ou quantitative.
@@ -44,20 +45,20 @@ mod_Accueil_ui <- function(id){
 
         tags$ul(tags$li("Vérifiez que votre base est au bon format. Un fichier .CSV ou un fichier .TXT de type séparateur = tabulation.", style="text-align: justify"),
                 tags$li("Vérifiez que toutes les cases de votre tableau soient remplies. On parle de tableau rectangulaire plein.", style="text-align: justify"),
-                tags$li("Vérifiez que les variables quantitatives ne possèdent pas de texte (type commentaires), ni de caractères spéciaux et que les variables qualitatives ne possedent pas de valeur quantitative", style="text-align: justify")
+                 tags$li("Vérifiez que les variables quantitatives ne possèdent pas de texte (type commentaires), ni de caractères spéciaux et que les variables qualitatives ne possèdent pas de valeur quantitative", style="text-align: justify")
         ),# find ul
         tags$br(),
-        tags$p("En cas de doute ou si un problème persiste, assurez-vous d'avoir respecté toutes les modalités du fichier de recommantations traitant du format d'une base, que vous pouvez télécharger ici :", style="text-align: justify"),
+        tags$p("En cas de doute ou si un problème persiste, assurez-vous d'avoir respecté toutes les modalités du fichier de recommandations traitant du format d'une base, que vous pouvez télécharger ici :", style="text-align: justify"),
         tags$br(),tags$br(),
         column(6,
              
                strong("* Instructions sur le format d'un tableau : saisie des données"),
                downloadButton(ns('formatBASE'),label="Télécharger Instructions format\n d'une base de données",class = "BOUTON"),
-               tags$head(tags$style(".BOUTON{background-color:#F1F1F7;} .BOUTON{color: black;}")),
+
                tags$br(),tags$br(),tags$br(),
                "* Un exemple de fichier au format .CSV adéquat est téléchargeable ici :",
                downloadButton(ns('DLcsv'),label="Télécharger Exemple de base de données",class = "BOUTON"),
-               tags$head(tags$style(".BOUTON{background-color:#F1F1F7;} .BOUTON{color: black;}")),
+
                tags$br(),tags$br(),  tags$br(),	tags$br()),
         column(6, img(src="www/tableau.PNG", height = 176, width = 500),tags$br(),  tags$br(),	tags$br()),
 
@@ -103,34 +104,6 @@ mod_Accueil_server <- function(id){
     output$formatBASE = downloadHandler(
       filename    = '0_Instructions.pdf',
       content     = function(file) file.copy(  system.file("app/www/0_Instructions.pdf", package = 'GmrcShinyStats'), file, overwrite = TRUE),
-      contentType = 'application/pdf'
-    )
-    
-    output$PDFbase = downloadHandler(
-      filename    = '1_BaseDeDonnees.pdf',
-      content     = function(file) file.copy(system.file('www/1_BaseDeDonnees.pdf', package = 'GmrcShinyStats'), file, overwrite = TRUE),
-      contentType = 'application/pdf'
-    )
-    
-
-    
-    output$PDFdescriptif2 = downloadHandler(
-      filename    = '2_DescriptifVAR.pdf',
-      content     = function(file) file.copy(system.file("app/www/2_DescriptifVAR.pdf", package = 'GmrcShinyStats'), file, overwrite = TRUE),
-      contentType = 'application/pdf'
-    )
-    
-
-    
-
-    
-
-    
-
-    
-    output$DLcnil = downloadHandler(
-      filename    = 'DBnonCRIH.pdf',
-      content     = function(file) file.copy(system.file("app/www/DBnonCRIH.pdf", package = 'GmrcShinyStats'), file, overwrite = TRUE),
       contentType = 'application/pdf'
     )
     

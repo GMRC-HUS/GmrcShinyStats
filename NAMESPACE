@@ -4,22 +4,99 @@ export(run_app)
 import(boot)
 import(dashboardthemes)
 import(dplyr)
-import(gdata)
 import(ggplot2)
 import(ggthemes)
 import(irr)
 import(pROC)
 import(shiny)
 import(shinyFiles)
-import(shinydashboard)
 import(shinydashboardPlus)
 import(utils)
 import(xtable)
-importFrom(golem,activate_js)
-importFrom(golem,add_resource_path)
-importFrom(golem,bundle_resources)
-importFrom(golem,favicon)
-importFrom(golem,with_golem_options)
-importFrom(shiny,NS)
-importFrom(shiny,shinyApp)
-importFrom(shiny,tagList)
+importFrom(golem,
+  activate_js,
+  add_resource_path,
+  bundle_resources,
+  favicon,
+  with_golem_options
+)
+importFrom(grDevices,
+  colorRampPalette,
+  nclass.Sturges
+)
+importFrom(graphics,
+  abline,
+  axis,
+  barplot,
+  boxplot,
+  curve,
+  hist,
+  legend,
+  lines,
+  mtext,
+  par,
+  points,
+  rect,
+  segments,
+  text
+)
+importFrom(moments,
+  kurtosis,
+  skewness
+)
+importFrom(shiny,
+  NS,
+  shinyApp,
+  tagList
+)
+importFrom(shinydashboard,
+  dashboardBody,
+  menuItem,
+  sidebarMenu,
+  tabItem,
+  tabItems
+)
+importFrom(stats,
+  IQR,
+  addmargins,
+  aggregate,
+  aov,
+  as.formula,
+  bartlett.test,
+  binom.test,
+  chisq.test,
+  complete.cases,
+  confint,
+  cor.test,
+  density,
+  dgamma,
+  dnorm,
+  fisher.test,
+  fitted,
+  glm,
+  integrate,
+  kruskal.test,
+  ks.test,
+  mcnemar.test,
+  median,
+  optimize,
+  pchisq,
+  predict,
+  qbeta,
+  qchisq,
+  qnorm,
+  qqline,
+  qqnorm,
+  qt,
+  quantile,
+  sd,
+  shapiro.test,
+  t.test,
+  var.test,
+  wilcox.test
+)
+importFrom(survival,
+  Surv,
+  survdiff,
+  survfit
+)

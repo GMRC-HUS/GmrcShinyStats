@@ -10,13 +10,10 @@
 #' @import shinyFiles
 mod_chargement_ui <- function(id){
   ns <- NS(id)
-  tagList(
- h1("Hello chargement !")
-  )
   fluidPage(
     sidebarLayout(
       sidebarPanel(
-        fileInput(ns("file1"), "Choose CSV File",
+        fileInput(ns("file1"), "Choisir un fichier CSV",
                   accept = c(
                     "text/csv",
                     "text/comma-separated-values,text/plain",
@@ -43,13 +40,19 @@ mod_chargement_ui <- function(id){
         radioButtons(ns('encodage'), "Si vous avez des problèmes d'import de la base de données, potentiellement liés à l'encodage",
                      c(`Windows/Excel`='windows-1252',
                        `Linux/LibreOffice` ='utf-8'),
-                     'windows-1252'),
-        
-        tags$br(),tags$br(),tags$br(),
+                      'windows-1252'),
+
+        downloadButton(ns('AIDEchargement'), label="AIDE et Détails"),
+
+        tags$br(),tags$br(),
         "Les lignes entièrement vides seront retirées pour la suite des analyses."
       ),
       mainPanel(
-        tableOutput(ns("contents"))
+        uiOutput(ns("statutChargement")),
+        h4("Aperçu des données chargées"),
+        tableOutput(ns("contents")),
+        h4("Types des colonnes et effectif non manquant"),
+        tableOutput(ns("typesColonnes"))
       )
     )
   )
@@ -74,11 +77,8 @@ mod_chargement_server <- function(id,r){
       if (is.null(inFile))
         return(NULL)
       
-      DD<-read.csv(inFile$datapath, header=input$header,sep=input$sep, na.string=c("",input$manquants),dec=input$decimale)
-      lignesVides<-apply(DD,1,function(x){sum(is.na(x))})==dim(DD)[2]
-      DD<-DD[!lignesVides,]
-      DD
-      })
+      r$BDD
+    }, rownames=FALSE)
     
     # BDD      <- reactive({
     #   inFile  <- input$file1
@@ -95,12 +95,48 @@ mod_chargement_server <- function(id,r){
     
     observeEvent(input$file1,ignoreInit = T,{
       inFile <- input$file1
-      DD<-read.csv(inFile$datapath, header=input$header,sep=input$sep, na.string=c("",input$manquants),dec=input$decimale)
-      lignesVides<-apply(DD,1,function(x){sum(is.na(x))})==dim(DD)[2]
-      DD<-DD[!lignesVides,]
-      r$BDD<-DD
-      r$contentInput<-DD
+      if(is.null(inFile)){
+        r$BDD<-NULL
+        r$chargementErreur<-NULL
+        return()
+      }
+      DD<-lire_bdd_csv(inFile$datapath, header=input$header, sep=input$sep,
+                       manquants=input$manquants, decimale=input$decimale,
+                       encodage=input$encodage)
+      if(is.null(DD)){
+        r$BDD<-NULL
+        r$chargementErreur<-"Impossible de lire ce fichier. Vérifiez le séparateur, l'encodage et le symbole de décimale."
+      }else{
+        r$BDD<-DD
+        r$contentInput<-DD
+        r$chargementErreur<-NULL
+      }
     })
+
+    output$statutChargement <- renderUI({
+      if(is.null(input$file1))
+        tags$p("Sélectionnez un fichier CSV ci-contre pour le charger, puis ajustez les options si besoin.", style="color:#555")
+      else if(!is.null(r$chargementErreur))
+        tags$p(r$chargementErreur, style="color:#c0392b")
+      else if(!is.null(r$BDD))
+        tags$p(paste("✓", dim(r$BDD)[1], "lignes ×", dim(r$BDD)[2], "colonnes chargées."),
+               style="color:#27ae60; font-weight:bold")
+      else NULL
+    })
+
+    output$typesColonnes <- renderTable({
+      if(is.null(r$BDD)) return(NULL)
+      D<-r$BDD
+      data.frame(variable=colnames(D),
+                 type=ifelse(vapply(D, is.numeric, logical(1)), "numérique", "qualitative"),
+                 n_effectif=colSums(!is.na(D)))
+    }, rownames=FALSE)
+
+    output$AIDEchargement <- downloadHandler(
+      filename='1_BaseDeDonnees.pdf',
+      content=function(file) file.copy(system.file("app/www/1_BaseDeDonnees.pdf", package='GmrcShinyStats'), file, overwrite=TRUE),
+      contentType='application/pdf'
+    )
     
     
     # BASEchargee<-reactive({
@@ -145,6 +181,8 @@ mod_chargement_server <- function(id,r){
       Y<-as.data.frame(lapply(D, factor))
       z<-as.numeric(lapply(Y, nlevels))
       r$nbModeVariable<-z
+      enregistrer_resultat(r, "Base de données", "Chargement de la base",
+                           paste(dim(r$BDD)[1], "observations ×", dim(r$BDD)[2], "variables"))
     })
 
     # for(i in 1 : (dim(D)[2])){
@@ -198,20 +236,7 @@ mod_chargement_server <- function(id,r){
       r$variableNormale<-ret
     })
     
-    # 
-    # 
-    # 
-    # 
-    # # Est-ce qu'un filtre est appliqué à la base de données ?
-    output$FILTREapplique44<- renderUI({
-
-
-      HTML("f")
-
-
-    })
     
-
   })
 }
 

@@ -1,46 +1,78 @@
 Package: GmrcShinyStats
-Title: An Amazing Shiny App
-Version: 0.0.0.9000
-Authors@R: 
-    person(given = "firstname",
-           family = "lastname",
+Title: GMRC Shiny Stats: An Educational Biostatistics Shiny Application
+Version: 0.1.0
+Authors@R:
+    c(person(given = "Thibaut",
+           family = "Fabacher",
            role = c("aut", "cre"),
-           email = "your@email.com")
-Description: What the package does (one paragraph).
-License: What license is it under?
-Imports: 
-    attempt,
+           email = "ShinyGMRC@chru-strasbourg.fr"),
+    person(given = "Michael",
+           family = "Schaeffer",
+           role = "aut"),
+    person(given = "Nicolas",
+           family = "Tuzin",
+           role = "aut"),
+    person(given = "François",
+           family = "Séverac",
+           role = "aut"),
+    person(given = "François",
+           family = "Lefebvre",
+           role = "aut"),
+    person(given = "Marie",
+           family = "Mielcarek",
+           role = "aut"),
+    person(given = "Erik-André",
+           family = "Sauleau",
+           role = "aut"),
+    person(given = "Nicolas",
+           family = "Meyer",
+           role = "aut"),
+    person(given = "Julien",
+           family = "Godet",
+           role = "aut")
+    )
+Description: A Shiny application that allows to perform biostatistical
+    analyses without any programming knowledge. It provides univariate
+    descriptive analyses of quantitative and qualitative variables, crossed
+    tables with automatic statistical test selection, survival analysis,
+    diagnostic test performances (ROC curves) and concordance analysis
+    (Cohen's kappa). The application was designed for medical education and
+    is developed by the 'Groupe Méthode en Recherche Clinique' (GMRC) of the
+    Hôpitaux Universitaires de Strasbourg.
+License: GPL-3
+Encoding: UTF-8
+Imports:
     config (>= 0.3.1),
-    DT,
-    glue,
-    golem (>= 0.3.1),
-    htmltools,
-    pkgload,
-    processx,
-    shiny (>= 1.7.1),
-    shinydashboard,
-    shinyFiles,
-    irr,
-    gdata,
     boot,
-    xtable,
+    dashboardthemes,
+    desctable,
     dplyr,
     ggplot2,
     ggthemes,
+    golem (>= 0.3.1),
+    irr,
+    moments,
     pROC,
-    dashboardthemes,
+    shiny (>= 1.7.1),
+    shinyFiles,
+    shinydashboard,
     shinydashboardPlus,
+    survival,
     utils,
-    desctable,
-    moments
-Encoding: UTF-8
-LazyData: true
-RoxygenNote: 7.1.2
-Suggests: 
+    xtable
+Suggests:
     rmarkdown,
     knitr,
     spelling,
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    TraMineR,
+    Epi,
+    MASS,
+    car,
+    plyr,
+    reshape,
+    epitools
 Config/testthat/edition: 3
 Language: en-US
 VignetteBuilder: knitr
+Config/roxygen2/version: 8.1.0

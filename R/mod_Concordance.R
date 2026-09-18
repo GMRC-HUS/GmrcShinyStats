@@ -8,7 +8,6 @@
 #'
 #' @importFrom shiny NS tagList
 #' @import irr
-#' @import gdata
 #' @import boot
 
 mod_Concordance_ui <- function(id){
@@ -71,7 +70,7 @@ mod_Concordance_server <- function(id,r){
               )
             ),#finFluidRow
             
-            tags$head(tags$style(".butt{background-color:#E9967A;} .butt{color: black;}")),
+
             h3("Tableau croisé"),
             p("On présente ci-dessous le tableau croisé des lectures réalisées :"),
             tableOutput(ns('mytableCONCORDANCE1')),br(),
@@ -123,7 +122,7 @@ mod_Concordance_server <- function(id,r){
               )
             ),#finFluidRow
             
-            tags$head(tags$style(".butt{background-color:#E9967A;} .butt{color: black;}")),
+
             h3("Tableau croisé"),
             p("On présente ci-dessous le tableau croisé des lectures réalisées:"),
             tableOutput(ns('mytableCONCORDANCE2')),br(),
@@ -160,15 +159,15 @@ mod_Concordance_server <- function(id,r){
     
     output$PDFconcordance = downloadHandler(
       filename    = '6_Concordance.pdf',
-      content     = function(file) file.copy('www/6_Concordance.pdf', file, overwrite = TRUE),
+      content     = function(file) file.copy(system.file("app/www/6_Concordance.pdf", package = 'GmrcShinyStats'), file, overwrite = TRUE),
       contentType = 'application/pdf'
     ) 
     
     
     observe({
       output$concordance = renderUI({
-        if(!r$BASEchargee) do.call(tabPanel,pasDeBase)
-        else do.call(tabPanel,concordanceAvecBase)
+        if(!r$BASEchargee) pasDeBase
+        else concordanceAvecBase
       })
     })
       
@@ -231,7 +230,7 @@ mod_Concordance_server <- function(id,r){
         Mat2[,2]				<-as.factor(Mat2[,2])
         levels(Mat2[,1])	<- c(levels(Mat2[,1]),LEV[!is.element(LEV,levels(Mat2[,1]))]      )
         levels(Mat2[,2])	<- c(levels(Mat2[,2]),LEV[!is.element(LEV,levels(Mat2[,2]))]      )
-        Mat2[,1]<-reorder.factor(Mat2[,1], new.order=levels(Mat2[,2]))
+        Mat2[,1]<-reorder_factor_levels(Mat2[,1], new.order=levels(Mat2[,2]))
         
         if(all(Mat2[,1]==Mat2[,2])){RESULTAT<-c(1,1,1)}else{
           lkappa.boot <- function(data,x) {kappa2(data[x,])$value}
@@ -239,7 +238,8 @@ mod_Concordance_server <- function(id,r){
           RESULTAT<-c(lkappa.boot(Mat2),boot.ci(res,type="bca")$ bca[,4:5])
         }
         cat("Le coefficient de concordance Kappa de Cohen est estimé à",RESULTAT[1],
-            "dans l'intervalle à 95% [",RESULTAT[2],";",RESULTAT[3],"]\nTest\nLe test de nullité de ce coefficient peut être réalisé et la p.valeur associée est",round(kappa2(cbind(x,y))$p.value,3), "\n")
+            "dans l'intervalle à 95% [",RESULTAT[2],";",RESULTAT[3],"]\nTest\nLe test de nullité de ce coefficient peut être réalisé et la p.valeur associée est",round(kappa2(cbind(x,y))$p.value,3),
+            "\nInterprétation (Landis et Koch) :", interpretation_kappa(RESULTAT[1]), "\n")
       }})
       
       output$ConcordanceManuelleSimple <- renderPrint({ 
@@ -258,15 +258,60 @@ mod_Concordance_server <- function(id,r){
         }
         if(x!="" & y!=""){
         cat("Estimation\nLe coefficient de concordance Kappa de Cohen est estimé à",round(kappa2(cbind(x,y))$value,3),".
-        \n\nTest\nLe test de nullité de ce coefficient peut être réalisé et la p.valeur associée est",round(kappa2(cbind(x,y))$p.value,3), "\n")
+        \n\nTest\nLe test de nullité de ce coefficient peut être réalisé et la p.valeur associée est",round(kappa2(cbind(x,y))$p.value,3),
+        "\nInterprétation (Landis et Koch) :", interpretation_kappa(kappa2(cbind(x,y))$value), "\n")
       }else{cat("Veuillez saisir les réponses de chaque lecteur.")}})
       
       output$LandisEtKoch2 <- renderTable({
         data.frame(Kappa=c("0-0.2","0.21-0.40","0.41-0.60","0.61-0.80","0.81-1"),
                    interpretation=c("très faible","faible","modéré","fort","presque parfait"))
-        
-      },rownames=TRUE)   
-      
+
+      },rownames=TRUE)
+
+      observeEvent(c(input$CONCORDANCElecture1, input$CONCORDANCElecture2,
+                     input$CONCORsaisie, input$Concoman1, input$Concoman2),
+                   ignoreInit = TRUE, {
+        base <- r$BDD
+        if (is.null(base)) {
+          return(invisible(NULL))
+        }
+        if (isTRUE(input$CONCORsaisie)) {
+          if (is.null(input$Concoman1) || is.null(input$Concoman2)) {
+            return(invisible(NULL))
+          }
+          if (input$Concoman1 == "" || input$Concoman2 == "") {
+            return(invisible(NULL))
+          }
+          x <- as.factor(strsplit(input$Concoman1, " ")[[1]])
+          y <- as.factor(strsplit(input$Concoman2, " ")[[1]])
+          source_ <- "saisie manuelle"
+        } else {
+          if (is.null(input$CONCORDANCElecture1) || is.null(input$CONCORDANCElecture2)) {
+            return(invisible(NULL))
+          }
+          x <- base[, colnames(base) == input$CONCORDANCElecture1]
+          y <- base[, colnames(base) == input$CONCORDANCElecture2]
+          source_ <- paste("lecteurs :", input$CONCORDANCElecture1, "×", input$CONCORDANCElecture2)
+        }
+        if (length(x) != length(y) || length(x) == 0) {
+          return(invisible(NULL))
+        }
+        Mat2 <- cbind(x, y)
+        Mat2 <- Mat2[complete.cases(Mat2), ]
+        if (nrow(Mat2) == 0) {
+          return(invisible(NULL))
+        }
+        kk <- tryCatch(suppressWarnings(kappa2(Mat2)), error = function(e) NULL)
+        if (is.null(kk)) {
+          return(invisible(NULL))
+        }
+        enregistrer_resultat(r, "Concordance",
+                             paste("Kappa de Cohen (", source_, ")"),
+                             paste("Kappa =", round(kk$value, 3),
+                                   "; p =", round(kk$p.value, 3),
+                                   "; interprétation :", interpretation_kappa(kk$value)))
+      })
+
     })
   })
 }

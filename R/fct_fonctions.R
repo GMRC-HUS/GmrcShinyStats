@@ -24,6 +24,7 @@ barplot_croise<-function(base,var1,var2){
   vjust<- unlist(as.list(ifelse(data$Freq< maxPourcent/5, -1.6, 1.6)), use.names = F)
   
   barplotCroise <- ggplot(data=data, aes(x=var2 ,y=Freq))+
+    theme_gmrc()+
     geom_col( position = "dodge",color='black',aes(fill = var2))+
     facet_wrap( ~var1)+
     geom_text(data=data,aes( label = paste(round(Freq,3)*100,"%")) , vjust=vjust, color="black", size=5) +
@@ -48,7 +49,7 @@ tablePourcent<- function(base){
 
 pieChart<- function(base){
   data<- tablePourcent(base)
-  bp<- ggplot(data=data, aes(x=0 ,y=pourcent, fill=reorder(nom, 1/pourcent)))+
+  bp<- ggplot(data=data, aes(x=0 ,y=pourcent, fill=reorder_factor_levels(factor(nom), nom[order(-pourcent)])))+
     coord_polar(theta='y')
   df <- try(data %>% mutate(pos = cumsum(sort(data$pourcent))- sort(data$pourcent)/2))
   
@@ -87,15 +88,16 @@ pieChart<- function(base){
 
 diagrammeBarre <- function(base){
   data<- tablePourcent(base)
-  bp<-ggplot(data=data, aes(x=nom ,y=pourcent*100, fill=reorder(nom, 1/pourcent)))
+  bp<-ggplot(data=data, aes(x=nom ,y=pourcent*100, fill=reorder_factor_levels(factor(nom), nom[order(-pourcent)])))
   
   maxPourcent<- max(data$pourcent, na.rm = T)
   label<-  paste(round(data$pourcent,3)*100,"%")
   vjust<- unlist(as.list(ifelse(data$pourcent< maxPourcent/5, -1.6, 1.6)), use.names = F)
   
   barre <- bp +
-    labs(title="Diagramme en barre", 
-         x="", y = "pourcentage")+
+    theme_gmrc()+
+    labs(title="Diagramme en barre",
+          x="", y = "pourcentage")+
     geom_bar(stat="identity", color='black')+
     guides(fill=guide_legend(override.aes=list(colour=NULL)))+
     
@@ -108,6 +110,7 @@ diagrammeBarre <- function(base){
   
 }
 
+#' @exportS3Method NULL
 t.testVarEgal<- function(x,...){
   t.test(x,var.equal = T,...)
 }
@@ -136,6 +139,106 @@ tests_autoGMRC<-function (var, grp){
     else ~. %>% oneway.test(var.equal = F)
     else ~kruskal.test
   }
+}
+
+reorder_factor_levels <- function(x, new.order) {
+  lv <- levels(x)
+  new_levels <- c(intersect(new.order, lv), setdiff(lv, new.order))
+  factor(x, levels = new_levels)
+}
+
+theme_gmrc <- function() {
+  ggplot2::theme_minimal(base_size = 13) +
+    ggplot2::theme(
+      plot.title = element_text(face = "bold", hjust = 0.5, size = 16),
+      axis.title = element_text(face = "bold"),
+      panel.grid.minor = element_blank(),
+      legend.position = "bottom"
+    )
+}
+
+enregistrer_resultat <- function(r, module, analyse, resultats) {
+  ligne <- data.frame(
+    date_heure = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+    module = module,
+    analyse = analyse,
+    resultats = resultats,
+    stringsAsFactors = FALSE
+  )
+  if (is.null(r$historique)) {
+    r$historique <- ligne
+  } else {
+    r$historique <- rbind(r$historique, ligne)
+  }
+  invisible(NULL)
+}
+
+export_png <- function(file, draw, width = 900, height = 700, res = 110) {
+  grDevices::png(file, width = width, height = height, res = res)
+  on.exit(grDevices::dev.off())
+  draw()
+  invisible(file)
+}
+
+interpretation_kappa <- function(k) {
+  if (is.na(k)) {
+    return("indéterminée")
+  }
+  if (k <= 0.20) {
+    return("très faible")
+  }
+  if (k <= 0.40) {
+    return("faible")
+  }
+  if (k <= 0.60) {
+    return("modéré")
+  }
+  if (k <= 0.80) {
+    return("fort")
+  }
+  return("presque parfait")
+}
+
+extraire_variable <- function(base, nom) {
+  if (is.null(base) || is.null(nom) || !nom %in% colnames(base)) {
+    return(NULL)
+  }
+  base[[nom]]
+}
+
+table_croise_securise <- function(x, y, useNA = "no") {
+  if (is.null(x) || is.null(y) || length(x) == 0 || length(y) == 0) {
+    return(NULL)
+  }
+  tab <- tryCatch(table(x, y, useNA = useNA), error = function(e) NULL)
+  if (is.null(tab) || sum(tab) == 0) {
+    return(NULL)
+  }
+  tab
+}
+
+test_chi2_securise <- function(tab) {
+  if (is.null(tab) || sum(tab) == 0) {
+    return(NULL)
+  }
+  res <- tryCatch(
+    suppressWarnings(chisq.test(tab, correct = FALSE)),
+    error = function(e) NULL
+  )
+  if (is.null(res) || is.na(res$p.value)) {
+    return(NULL)
+  }
+  res
+}
+
+test_fisher_securise <- function(tab) {
+  if (is.null(tab)) {
+    return(NULL)
+  }
+  if (any(dim(tab) < 2) || any(dim(tab) > 50) || max(tab) > 1e6) {
+    return(NULL)
+  }
+  tryCatch(fisher.test(tab), error = function(e) NULL)
 }
 
 file.choose2 <- function(...) {

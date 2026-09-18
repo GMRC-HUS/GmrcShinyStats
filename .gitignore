@@ -3,3 +3,7 @@
 .RData
 .Ruserdata
 inst/doc
+.Rplots.pdf
+*.tar.gz
+*.Rcheck/
+Rplots.pdf

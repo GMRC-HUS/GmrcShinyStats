@@ -5,8 +5,18 @@
 #' @return The return value, if any, from executing the function.
 #'
 #' @noRd
-
-library(utils)
+#'
+#' @importFrom stats IQR addmargins aggregate aov as.formula
+#'     bartlett.test binom.test chisq.test complete.cases confint cor.test
+#'     density dgamma dnorm fisher.test fitted glm integrate
+#'     kruskal.test ks.test mcnemar.test median optimize pchisq predict
+#'     qbeta qchisq qnorm qqline qqnorm qt quantile sd shapiro.test t.test
+#'     var.test wilcox.test
+#' @importFrom graphics abline axis barplot boxplot curve hist legend lines
+#'     mtext par points rect segments text
+#' @importFrom grDevices colorRampPalette nclass.Sturges
+#' @importFrom moments kurtosis skewness
+#' @importFrom survival Surv survfit survdiff
 
 #setInternet2(TRUE)
 
@@ -15,12 +25,75 @@ cs<-function(x){
   return(   (x-mean(x,na.rm=TRUE))/sd(x,na.rm=TRUE) )}
 #########################		ROUND DES P.VALEURS		######### UTILE dans les codes de prog
 rdpv<-function(x){
+  res<-NA
   if(!is.na(x)){
-    if(x<0.01){res<-"<0.01"}
+    if(x<0.01){res<- "<0.01"}
     if(x>=0.01){res<-round(x,3)}
   }
   return(res)}
 
+ansari_test<-function(...) {
+  for (pkg in c("car", "stats", "moments")) {
+    if (requireNamespace(pkg, quietly = TRUE) && "ansari.test" %in% getNamespaceExports(pkg)) {
+      return(get("ansari.test", envir = asNamespace(pkg))(...))
+    }
+  }
+  stop("ansari.test introuvable : installez le paquet 'car' (install.packages('car')).", call. = FALSE)
+}
+
+fligner_test<-function(...) {
+  for (pkg in c("car", "stats", "moments")) {
+    if (requireNamespace(pkg, quietly = TRUE) && "fligner.test" %in% getNamespaceExports(pkg)) {
+      return(get("fligner.test", envir = asNamespace(pkg))(...))
+    }
+  }
+  stop("fligner.test introuvable : installez le paquet 'car' (install.packages('car')).", call. = FALSE)
+}
+
+#' Lire une base de données CSV en mémoire
+#'
+#' Charge un fichier CSV en appliquant l'encodage, le séparateur, le symbole
+#' de décimale et le symbole de données manquantes choisis, puis supprime les
+#' lignes entièrement vides. Retourne NULL si le fichier ne peut pas être lu
+#' (au lieu de faire échouer l'application).
+#'
+#' @noRd
+lire_bdd_csv<-function(datapath, header=TRUE, sep=";",
+                       manquants="*", decimale=",", encodage="windows-1252"){
+  if(!is.character(datapath) || length(datapath)!=1 || !file.exists(datapath)) return(NULL)
+  DD<-tryCatch(
+    read.csv(datapath, header=header, sep=sep,
+             na.string=c("", manquants), dec=decimale,
+             fileEncoding=encodage),
+    error=function(e) NULL
+  )
+  if(is.null(DD)) return(NULL)
+  lignesVides<-apply(DD, 1, function(x) sum(is.na(x)))==dim(DD)[2]
+  DD[!lignesVides, , drop=FALSE]
+}
+
+#' Parser une saisie manuelle de tableau croisé
+#'
+#' Transforme une chaîne de nombres séparés par des espaces en une matrice
+#' d'effectifs (n lignes, p colonnes, remplissage par colonne). Retourne NULL
+#' si la saisie est invalide (dimension nulle/négative, nombre de valeurs
+#' différent de n*p, valeurs non numériques ou négatives).
+#'
+#' @noRd
+table_crossed<-function(n, p, x){
+  if(is.null(x) || length(x) != 1 || is.na(x)) return(NULL)
+  n <- suppressWarnings(as.numeric(n))
+  p <- suppressWarnings(as.numeric(p))
+  if(length(n) != 1 || length(p) != 1 || is.na(n) || is.na(p)) return(NULL)
+  if(n < 1 || p < 1) return(NULL)
+  n <- as.integer(n); p <- as.integer(p)
+  raw <- strsplit(trimws(x), "\\s+")[[1]]
+  raw <- raw[raw != ""]
+  v <- suppressWarnings(as.numeric(raw))
+  if(length(v) != n * p) return(NULL)
+  if(any(is.na(v)) || any(v < 0)) return(NULL)
+  matrix(v, ncol = p, nrow = n)
+}
 
 IC.diff.prop<-function(x1,n1,x2,n2,alpha01=0.5,alpha02=0.5,beta01=0.5,beta02=0.5,val=0.95){
   
@@ -105,7 +178,7 @@ IC.diff.prop<-function(x1,n1,x2,n2,alpha01=0.5,alpha02=0.5,beta01=0.5,beta02=0.5
 # }
 
 logistique.variable.cont<-function(y,x,ic=FALSE,titre=""){
-  if(!require(pROC))install.packages('pROC'); library(pROC)
+  if(!requireNamespace("pROC", quietly = TRUE)) install.packages('pROC')
   situation<-99
   if(missing(x) | missing(y)) {situation=0}
   if( nlevels(as.factor(x))==2    ) {situation=0;print("Variable binaire et non quantitative")}
@@ -235,7 +308,6 @@ logist<-function(y,x,ic=FALSE,latex=FALSE,titre=0){
   #rownames(Mat.performances)<-c("Sensibilite","Specificite",paste("AUC ","(p=",rdpv(as.numeric(L$Performance[3,4])),")",sep=""))
   Mat.Valeurs<-cbind(L$Valeurs,L$Valeurs2)
   rownames(Mat.Valeurs)<-c("")
-  library(xtable)
   cat("---------------CODE LATEX-------------------------\n")
   cat("\\uline{\\textbf{Performances}}\\\\ \n~\\\\\n")
   print(xtable(Mat.performances))
@@ -334,7 +406,6 @@ tableaux<-function(X,Y,latex=0,p.val=T,entete=0,caption=0){
 descr1<-function(Y,Tap=FALSE){
   if(Tap){res<-list(Descriptif=NULL,TestNormalite=NULL,Tap=NULL)}else{res<-list(Descriptif=NULL,TestNormalite=NULL)}
   nomY<-deparse(substitute(Y))
-  library(moments)
   aze<-matrix(NA,ncol=1,nrow=24)
   rownames(aze)<-c("Effectifs presents","Proportions de presents %","Effectifs manquants","Proportions de manquants %",
                    "Moyenne","Ecart-type","Variance","Erreur standard (s.e.m)","Minimum","Maximum","Percentile 2,5","Percentile 5","Q1 ",
@@ -417,7 +488,6 @@ descr3<-function(Y,X,Tap=FALSE,nom=NULL, nomY =NULL, latex=0){
   if(!is.factor(X)){X<-as.factor(X)}
   if(is.null(nomY)){nomY<-deparse(substitute(Y))}
   nbnv<-nlevels(X)
-  library(moments)
   
   aze<-matrix(NA,ncol=1+nbnv,nrow=27)
   rownames(aze)<-c("Effectifs presents","Proportions de presents","Effectifs manquants","Proportions de manquants",
@@ -519,7 +589,7 @@ descr3<-function(Y,X,Tap=FALSE,nom=NULL, nomY =NULL, latex=0){
   pvalnorm[2]<-ks.test(Y,"pnorm",mean(Y,na.rm=T),sd(Y,na.rm=T))$p.value
   pvalnorm<-round(pvalnorm,digits=4)
   
-  if(nlevels(X)==2){pvalfl2g<-format.pval(ansari.test(Y~X)$p.value,digits=4)}else{if(nlevels(X)>2){pvalfl3g<-format.pval(fligner.test(Y~X)$p.value,digits=4)}}
+  if(nlevels(X)==2){pvalfl2g<-format.pval(ansari_test(Y~X)$p.value,digits=4)}else{if(nlevels(X)>2){pvalfl3g<-format.pval(fligner_test(Y~X)$p.value,digits=4)}}
   
   if(nlevels(X)==2){testnpv<-paste(list(paste("Test non param. d'egalite de deux variances (Ansari) : p =",pvalfl2g)
   ))
@@ -562,7 +632,6 @@ descr3<-function(Y,X,Tap=FALSE,nom=NULL, nomY =NULL, latex=0){
   }
   
   if(latex==1){
-    library(xtable)
     if(pvalnorm[1]>=0.05){pvalTEX<-testp[1]}else{pvalTEX<-as.numeric(gsub(".* ([0-9.]+).*", "\\1",testnp[1]))}
     cat(paste("Croisement de la variable", nomY, "en fonction de" ,nom))
     cat("\n")
@@ -596,8 +665,6 @@ croisements<-function(numero.variable.dinteret,D,qualiF,quantiF,affichage=40){
   Y<-D[,ny]
   
   
-  library(xtable)
-  library(epitools)
   
   choix<-choix.entre.manuelle1.et.auto.2
   
@@ -733,7 +800,7 @@ croisements<-function(numero.variable.dinteret,D,qualiF,quantiF,affichage=40){
               if((OR>=try(fisher.test(A)$conf.int[1],silent=TRUE))&(OR<=try(fisher.test(A)$conf.int[2],silent=TRUE)))
               {ORCI<-c(try(fisher.test(A)$conf.int[1],silent=TRUE),try(fisher.test(A)$conf.int[2],silent=TRUE))}
               if((OR<try(fisher.test(A)$conf.int[1],silent=TRUE))|(OR>try(fisher.test(A)$conf.int[2],silent=TRUE)))
-              {ORCI<-unname(oddsratio(A)$measure[2,][2:3])}
+              {ORCI<-if(requireNamespace("epitools", quietly=TRUE)) unname(epitools::oddsratio(A)$measure[2,][2:3]) else NA}
               OR                   <-round(OR,digits<-3);ORCI<-round(ORCI,digits=3)
               conjonction<-"dans ["
             }
@@ -813,7 +880,7 @@ croisements<-function(numero.variable.dinteret,D,qualiF,quantiF,affichage=40){
           p.norm.1    <-      try(shapiro.test(D[,quantitatives][,i][Y==attr(table(Y),"dimnames")$Y[1]])$p.value,silent=TRUE)           
           p.norm.2    <-      try(shapiro.test(D[,quantitatives][,i][Y==attr(table(Y),"dimnames")$Y[2]])$p.value,silent=TRUE)
           p3          <-round(try(var.test    (D[,quantitatives][,i][Y==attr(table(Y),"dimnames")$Y[1]],D[,quantitatives][,i][Y==attr(table(Y),"dimnames")$Y[2]])$p.value,silent=TRUE),2)
-          p4          <-round(try(ansari.test (D[,quantitatives][,i][Y==attr(table(Y),"dimnames")$Y[1]],D[,quantitatives][,i][Y==attr(table(Y),"dimnames")$Y[2]])$p.value,silent=TRUE),2)
+          p4          <-round(try(ansari_test (D[,quantitatives][,i][Y==attr(table(Y),"dimnames")$Y[1]],D[,quantitatives][,i][Y==attr(table(Y),"dimnames")$Y[2]])$p.value,silent=TRUE),2)
           
           
           
@@ -903,8 +970,8 @@ HosLem<-function(modele){
 ###########################################################################################################
 
 Roc<-function(mod){
-  library(Epi)
-  ROC(fitted(mod,type="response"),mod$y,AUC=TRUE,main="Courbe ROC", MI=F)
+  if (!requireNamespace("Epi", quietly = TRUE)) stop("Le paquet Epi est requis pour cette fonction.")
+  Epi::ROC(fitted(mod,type="response"),mod$y,AUC=TRUE,main="Courbe ROC", MI=F)
 }
 
 
@@ -1291,14 +1358,12 @@ descd<-function(D){
 ###########################################################################################################
 
 dessin.temporaire	<-function(x1){
-  library(ggplot2)
   ggplot(data.frame(cbind(x1)), aes(x=x1,fill=as.factor(rep(1,length(x1))),colour=1)) + 
     geom_histogram(aes(y = ..density..),breaks=pretty(range(x1,na.rm=TRUE), n = nclass.Sturges(x1), min.n = 1))+
     scale_fill_manual( values = c("dodgerblue4"))+
     theme(legend.position = "none")+
     stat_function(fun = function(xyz) dnorm(xyz,mean=mean(x1,na.rm=TRUE),sd=sd(x1,na.rm=TRUE)), colour = "red")}
 norm1				<-function(X,alpha=0.05,precision=5,aff=1,graph=1){
-  if(!require(ggplot2))install.packages('ggplot2'); library(ggplot2)
   options(warn=-pi)
   A<-X[!is.na(X)]
   
@@ -1309,8 +1374,8 @@ norm1				<-function(X,alpha=0.05,precision=5,aff=1,graph=1){
   if(all(A>0)){lg  <-round(shapiro.test(log(A))$p.value,           precision)}else{lg<-"Valeurs negatives ou nulles"}                            # Transfor LOG
   if(all(A>=0)){ar  <-round(shapiro.test(asin(sqrt(A)/100))$p.value,precision)}else{ar<-"Valeurs negatives ou nulles"}                   # ARCSIN RACINE
   
-  library(car)
-  if(all(A>0)){Lambda  <-powerTransform(A)$lambda
+  if (!requireNamespace("car", quietly = TRUE)) stop("Le paquet car est requis pour cette fonction.")
+  if(all(A>0)){Lambda  <-car::powerTransform(A)$lambda
   if(Lambda!=0){A.p     <-(A^Lambda-1)/Lambda}else{A.p=log(A)}
   bc      <-round(shapiro.test(A.p)$p.value,precision)}else{bc<-"Valeurs negatives ou nulles";Lambda=NA}
   RES     <-matrix(NA,ncol=2,nrow=6)
@@ -1376,8 +1441,8 @@ norm				<-function(	x1,	x2=NULL,	x3=NULL,	x4=NULL,	x5=NULL,	x6=NULL,	x7=NULL,	x8
   {
     x<-MV
     complet<-as.vector(x[!is.na(x)])
-    library(car)
-    if(all(complet>0)){Lambda  <-round(powerTransform(complet)$lambda,2)}
+    if (!requireNamespace("car", quietly = TRUE)) stop("Le paquet car est requis pour cette fonction.")
+    if(all(complet>0)){Lambda  <-round(car::powerTransform(complet)$lambda,2)}
     Ncol=dim(x)[2]
     M<-MM<-matrix(NA,nrow=6,ncol=Ncol)
     C<-array(data = rep(NA,(6* 3* Ncol)), dim = c(6, 3, Ncol))
@@ -1560,9 +1625,9 @@ extreme<-function (x, nlab = 2, labs = as.character(1:length(x)), ylab = "Sorted
 
 gamm<-function(x){
   
-  library(MASS)
-  library(car)
-  fd	<-fitdistr(x[!is.na(x)],"gamma")
+  if (!requireNamespace("MASS", quietly = TRUE)) stop("Le paquet MASS est requis pour cette fonction.")
+  if (!requireNamespace("car", quietly = TRUE)) stop("Le paquet car est requis pour cette fonction.")
+  fd	<-MASS::fitdistr(x[!is.na(x)],"gamma")
   shape.X	<-fd$estimate[1]
   rate.X 	<-fd$estimate[2]
   
@@ -1575,7 +1640,7 @@ gamm<-function(x){
   curve(dgamma(x,shape.X,rate.X),0,50,xlab="x",ylab="Pdf",add=TRUE,col="blue")
   legend("topright", legend = c("Histogram", "Theorical Gamma"), col = c("red", "blue"), pch = 15, bty = "n", pt.cex = 2, cex = 0.8, text.col = "forestgreen",  inset = c(0.1, 0.1))
   
-  qqPlot(x,distr="gamma",shape=shape.X)
+  car::qqPlot(x,distr="gamma",shape=shape.X)
   
   plot(c(0,0),col="white",bty="n",xaxt="n",yaxt="n",col.lab="white",main="Theorical Gamma : Max Lik")
   text(1.2,0.6,"Shape:",cex=1.5,col="blue")
@@ -1606,7 +1671,6 @@ gamm<-function(x){
 
 ggsurv <- function(s, CI = 'def', plot.cens = T, surv.col = 'gg.def',                   cens.col = 'red', lty.est = 1, lty.ci = 2,                   cens.shape = 3, back.white = F, xlab = 'Time',                   ylab = 'Survival', main = ''){
   
-  library(ggplot2)  
   strata <- ifelse(is.null(s$strata) ==T, 1, length(s$strata))
   stopifnot(length(surv.col) == 1 | length(surv.col) == strata)
   stopifnot(length(lty.est) == 1 | length(lty.est) == strata)
@@ -1720,11 +1784,11 @@ ggsurv <- function(s, CI = 'def', plot.cens = T, surv.col = 'gg.def',           
                                   cens.col, lty.est, lty.ci,
                                   cens.shape, back.white, xlab,
                                   ylab, main) 
-  } else {ggsurv.m(s, CI, plot.cens, surv.col ,
-                   cens.col, lty.est, lty.ci,
-                   cens.shape, back.white, xlab,
-                   ylab, main)}
-  pl
+   } else {ggsurv.m(s, CI, plot.cens, surv.col ,
+                    cens.col, lty.est, lty.ci,
+                    cens.shape, back.white, xlab,
+                    ylab, main)}
+   pl + theme_gmrc()
 }
 
 
@@ -1740,22 +1804,22 @@ ggsurv <- function(s, CI = 'def', plot.cens = T, surv.col = 'gg.def',           
 ###########################################################################################################
 
 
+#' @exportS3Method NULL
 plot.na2<-function(D,cumul=0,latex=0){
   
   if(cumul==2){D<-t(D)}
-  setInternet2(TRUE)
-  if(!require(TraMineR))install.packages('TraMineR'); library(TraMineR)
+  if (!requireNamespace("TraMineR", quietly = TRUE)) stop("Le paquet TraMineR est requis pour cette fonction.")
   D2<-ifelse(is.na(D),"NA","Present")
   D2.alphab<-c("NA","Present")
-  D2.seq <- seqdef(D2,  xtstep = 2, alphabet = D2.alphab)
+  D2.seq <- TraMineR::seqdef(D2,  xtstep = 2, alphabet = D2.alphab)
   
   par(mfrow=c(2,1))
-  seqplot(D2.seq, border = NA,type="I", withlegend = "right",space=0,cpal=c("red","blue"),title="Valeurs manquantes par variable",ylab="Sujets")                  # TAPIS
+  TraMineR::seqplot(D2.seq, border = NA,type="I", withlegend = "right",space=0,cpal=c("red","blue"),title="Valeurs manquantes par variable",ylab="Sujets")                  # TAPIS
   if(cumul==1){
-    seqdplot(D2.seq, border = NA, withlegend = "right",cpal=c("red","blue"),title="Valeurs manquantes par variable (cumulees)",ylab=" % Sujets" )                                                       # CMULÃ©
+  TraMineR::seqdplot(D2.seq, border = NA, withlegend = "right",cpal=c("red","blue"),title="Valeurs manquantes par variable (cumulees)",ylab=" % Sujets" )                                                       # CMULÃ©
   }
   if(cumul==2){
-    seqdplot(D2.seq, border = NA, withlegend = "right",cpal=c("red","blue"),title="Valeurs manquantes par sujet",ylab=" % Variable" )                                                       # CMULÃ©
+  TraMineR::seqdplot(D2.seq, border = NA, withlegend = "right",cpal=c("red","blue"),title="Valeurs manquantes par sujet",ylab=" % Variable" )                                                       # CMULÃ©
   }
   cat("\n ")
   cat("\n ")
@@ -1773,6 +1837,7 @@ plot.na2<-function(D,cumul=0,latex=0){
 }
 
 
+#' @exportS3Method NULL
 plot.na <- function(data_in, title = NULL){
   temp_df <- as.data.frame(ifelse(is.na(data_in), 1, 0))
   temp_df <- temp_df[,order(colSums(temp_df))]
@@ -1805,7 +1870,6 @@ correl<-function(x,y,droite=1, nomx=NULL , nomy = NULL){
   
   
   options(warn=-1)
-  if(!require(ggplot2))install.packages('ggplot2'); library(ggplot2)
   if(length(x)==length(y)){
     r<-rbind(       c(round(cor.test(x,y,method = "kendall") $estimate,3),cor.test(x,y,method = "kendall") $p.value),
                     c(round(cor.test(x,y,method = "pearson" )$estimate,3),cor.test(x,y,method = "pearson") $p.value),
@@ -1842,7 +1906,8 @@ correl<-function(x,y,droite=1, nomx=NULL , nomy = NULL){
 ###########################################################################################################
 ###########################################################################################################
 
-plot.evol2<-function(DT,groups,main,etyp=0) { 
+#' @exportS3Method NULL
+plot.evol2<-function(DT,groups,main,etyp=0) {
   
   par.groupes<-0
   if(missing(main)){main=""}
@@ -1921,6 +1986,17 @@ plot.evol2<-function(DT,groups,main,etyp=0) {
 #DT	<-cbind(x1,x2,x3)
 #plot.evol(cbind(x1,x2,x3))
 
+
+expand_dfmatrix<-function(df){
+  out<-df[, !vapply(df, is.matrix, logical(1)), drop=FALSE]
+  for(nm in names(df)[vapply(df, is.matrix, logical(1))]){
+    m<-df[[nm]]
+    rws<-if(is.null(rownames(m))) as.character(seq_len(nrow(m))) else rownames(m)
+    for(j in seq_len(ncol(m))) out[[paste0(nm, ".", rws[j])]]<-m[j, ]
+  }
+  as.data.frame(out)
+}
+#' @exportS3Method NULL
 plot.evol<-function(  Trajectoires,  Groupe=NULL,  IC = FALSE,  Moyenne = TRUE,  Temps = NULL,  label_x = "Temps",  label_y= "Valeur",  labels_ticks_x=NULL){
   
   
@@ -1964,7 +2040,7 @@ plot.evol<-function(  Trajectoires,  Groupe=NULL,  IC = FALSE,  Moyenne = TRUE, 
   )
   
   # Verifier que ggplot present
-  if(!require(ggplot2)){stop("ggplot est necessaire")}
+  if (!requireNamespace("ggplot2", quietly = TRUE)) stop("ggplot est necessaire")
   
   ggtrajectoire<-ggplot() +
     geom_line(data=dfTraj, aes(x=visites, y=valeurs, group=patient)) 
@@ -1995,7 +2071,6 @@ plot.evol<-function(  Trajectoires,  Groupe=NULL,  IC = FALSE,  Moyenne = TRUE, 
     bornesIC<-aggregate( formula= valeurs~visites+groupe, data=dfTraj, FUN=bornes)
     
     # Attention! Matrice dans la dataframe 
-    library(dfexplore)
     bornesIC<-expand_dfmatrix(bornesIC)
     names(bornesIC) <- c("visites", "groupe", "ICmin", "ICmax")
     ggtrajectoire <- ggtrajectoire + geom_errorbar(data=bornesIC, size=2, width=0.3,position="dodge" ,aes(x=visites, ymin=ICmin, ymax=ICmax, group=groupe,color=groupe, alpha=1))
@@ -2170,13 +2245,12 @@ ggboxplot<-function(x,y,Groupe=NULL)
   nomy<-deparse(substitute(y))
   if(is.null(Groupe)){DDD<-data.frame(cbind(x,y))}else{DDD<-data.frame(cbind(x,y,Groupe))}
   DDD<-DDD[complete.cases(DDD),]
-  library(ggplot2)
   if(is.null(Groupe)){
     p <- ggplot(DDD,aes(factor(y),x)				)+xlab(nomy)+ylab(nomx)}else{
       p <- ggplot(DDD,aes(factor(y),x,fill=factor(Groupe))	)+xlab(nomy)+ylab(nomx)
     }
   titre<-paste(nomx,"en fonction de",nomy)
-  return(p + geom_boxplot()  + ggtitle(titre)+ scale_x_discrete(labels=levels(y)))
+  return(p + geom_boxplot()  + ggtitle(titre)+ scale_x_discrete(labels=levels(y))+theme_gmrc())
 }
 
 
@@ -2190,7 +2264,7 @@ ggcompar<-function(x,y, DDD= NULL)
   titre<-paste("Distributions de",x,"en fonction de",y)
   DDD[,2]<- as.factor(DDD[,2])
   return(
-    ggplot(DDD,aes(x=DDD[,1], fill=DDD[,2])) + geom_density(alpha=.3)+ ggtitle(titre)+xlab(x)+   guides(fill = guide_legend(title = y))
+    ggplot(DDD,aes(x=DDD[,1], fill=DDD[,2])) + geom_density(alpha=.3)+ ggtitle(titre)+xlab(x)+   guides(fill = guide_legend(title = y))+theme_gmrc()
   )
 }
 
@@ -2201,13 +2275,12 @@ ggpoints<-function(x,y,droite=0,nomx= NULL,nomy=NULL)
   options(warn=-1)
   if(is.null(nomx)){nomx<-deparse(substitute(x))}
   if( is.null(nomy) ){nomy<-deparse(substitute(y))}
-  if(!require(ggplot2))install.packages('ggplot2'); library(ggplot2)
   if(length(x)==length(y)){
     DDD                     <- data.frame(cbind(y,x))
     c                       <- ggplot(DDD, aes(x, y))
     #x11()
-    if(droite==1){        return(c + stat_smooth(method = "lm") + geom_point() +xlab(nomx)+ylab(nomy)) }
-    else{  	if(droite==0){        return(c +                              geom_point() +xlab(nomx)+ylab(nomy)) }}
+    if(droite==1){        return(c + stat_smooth(method = "lm") + geom_point() +xlab(nomx)+ylab(nomy)+theme_gmrc()) }
+    else{  	if(droite==0){        return(c +                              geom_point() +xlab(nomx)+ylab(nomy)+theme_gmrc()) }}
     if(droite!=0 & droite!=1){return("Mauvaise valeur pour l'option droite")}} else{   return("Les longueurs des vecteurs ne sont pas egales")}
   options(warn=0)                 
 }
@@ -2219,7 +2292,6 @@ ggpoints<-function(x,y,droite=0,nomx= NULL,nomy=NULL)
 
 gghist<-function(x1,Groupe=NULL){
   
-  library(ggplot2)
   
   if(is.null(Groupe)){
     nomx<-deparse(substitute(x1))
@@ -2254,8 +2326,6 @@ ggsurvie<-function(x,y,groups=0,latex=0,titre=0)
     if(latex==0){situation=2}			# 	   GRP		# Pas de LTX
     if(latex!=0){situation=4}			# 	   GRP		#        LTX
   }
-  if(!require(xtable))      install.packages('xtable')  ;    library(xtable)
-  if(!require(survival))    install.packages('survival');    library(survival)
   
   
   nom.y<-deparse(substitute(y))
@@ -2267,7 +2337,7 @@ ggsurvie<-function(x,y,groups=0,latex=0,titre=0)
   if(titre!=0 & titre!=1){titre.ss.groupe<-titre.ac.groupe<-titre}
   
   if(situation==1){		surv2 		<- survfit(Surv(x,y) ~ 1)
-  plot2 		<- ggsurv(surv2,main=titre.ss.groupe)+ylim(0,1)
+  plot2 		<- ggsurv(surv2,main=titre.ss.groupe,xlab="Délai",ylab="Probabilité de survie")+ylim(0,1)
   print(plot2+ylim(0,1))
   print(surv2)
   print(summary(surv2))
@@ -2275,7 +2345,7 @@ ggsurvie<-function(x,y,groups=0,latex=0,titre=0)
   
   if(situation==2){		Groupe		<- groups
   surv2 		<- survfit(Surv(x,y) ~ Groupe)
-  plot2 		<- ggsurv(surv2,main=titre.ac.groupe)+ylim(0,1)
+  plot2 		<- ggsurv(surv2,main=titre.ac.groupe,xlab="Délai",ylab="Probabilité de survie")+ylim(0,1)
   
   print(plot2+ylim(0,1))
   print(surv2)
@@ -2284,46 +2354,66 @@ ggsurvie<-function(x,y,groups=0,latex=0,titre=0)
   }
   
   if(situation==3){		surv2 		<- survfit(Surv(x,y) ~ 1)
-  plot2 		<- ggsurv(surv2,main=titre.ss.groupe)+ylim(0,1)
+  plot2 		<- ggsurv(surv2,main=titre.ss.groupe,xlab="Délai",ylab="Probabilité de survie")+ylim(0,1)
   print(plot2+ylim(0,1))
   DETAIL		<-cbind(surv2 $ time , surv2 $ n.risk,  surv2 $ n.event,  surv2 $ n.censor, surv2$surv ,surv2 $ std.err  ,surv2 $ upper,surv2 $ lower   )
   colnames(DETAIL)	<-c("time","n.risk","n.event","n.censor","surv","std.err","upper95%","lower95%")
   print(xtable(DETAIL))
   }
   
-  if(situation==4){		Groupe		<- groups
-  surv2 		<- survfit(Surv(x,y) ~ Groupe)
-  plot2 		<- ggsurv(surv2,main=titre.ac.groupe)+ylim(0,1)
-  print(plot2+ylim(0,1))
-  DETAIL		<-cbind(surv2 $ time , surv2 $ n.risk,  surv2 $ n.event,  surv2 $ n.censor, surv2$surv ,surv2 $ std.err  ,surv2 $ upper,surv2 $ lower   )
-  colnames(DETAIL)	<-c("time","n.risk","n.event","n.censor","surv","std.err","upper95%","lower95%")
-  ST			<-survdiff(Surv(x,y) ~ groups)
-  df			<-nlevels(as.factor(groups))-1
-  p.val			<-1-pchisq(ST$chisq,df)
-  cat(paste("La p.valeur associee au test de comparaison des courbes de survie (Test du log-Rank) est de:",round(p.val,2)))
-  cat(" \n")				
-  print(xtable(DETAIL))			
+   if(situation==4){		Groupe		<- groups
+    surv2 		<- survfit(Surv(x,y) ~ Groupe)
+    plot2 		<- ggsurv(surv2,main=titre.ac.groupe,xlab="Délai",ylab="Probabilité de survie")+ylim(0,1)
+   print(plot2+ylim(0,1))
+   DETAIL		<-cbind(surv2 $ time , surv2 $ n.risk,  surv2 $ n.event,  surv2 $ n.censor, surv2$surv ,surv2 $ std.err  ,surv2 $ upper,surv2 $ lower   )
+   colnames(DETAIL)	<-c("time","n.risk","n.event","n.censor","surv","std.err","upper95%","lower95%")
+   ST			<-survdiff(Surv(x,y) ~ groups)
+   df			<-nlevels(as.factor(groups))-1
+   p.val			<-1-pchisq(ST$chisq,df)
+   cat(paste("La p.valeur associee au test de comparaison des courbes de survie (Test du log-Rank) est de:",round(p.val,2)))
+   cat(" \n")
+   print(xtable(DETAIL))
+   }
+}
+
+tab_survie<-function(x,y,groups=0){
+  if(length(groups)==1 && groups==0){
+    surv2 <- survfit(Surv(x,y) ~ 1)
+  } else {
+    Groupe <- as.factor(groups)
+    surv2 <- survfit(Surv(x,y) ~ Groupe)
   }
+  DETAIL <- data.frame(Delai=round(surv2$time,3),
+                       nrisque=surv2$n.risk,
+                       evenements=surv2$n.event,
+                       censures=surv2$n.censor,
+                       survie=round(surv2$surv,3),
+                       ecart_type=round(surv2$std.err,3),
+                       IC95_sup=round(surv2$upper,3),
+                       IC95_inf=round(surv2$lower,3))
+  if(!is.null(surv2$strata)){
+    DETAIL$Groupe <- sub("^.*=\\s*", "", rep(names(surv2$strata), unname(surv2$strata)))
+  }
+  DETAIL
 }
 
 
 ggpie<-function(Valeur,Groupe="Graphique"){
-  library(reshape)
-  library(plyr)
-  library(ggplot2)
+  if (!requireNamespace("reshape", quietly = TRUE)) stop("Le paquet reshape est requis pour cette fonction.")
+  if (!requireNamespace("plyr", quietly = TRUE)) stop("Le paquet plyr est requis pour cette fonction.")
   y  = data.frame(category=Groupe,
                   value=Valeur)
   # get counts and melt it
-  data.m = melt(table(y))
+  data.m = reshape::melt(table(y))
   names(data.m)[3] = "count"
   # calculate percentage:
-  m1 = ddply(data.m, .(category), summarize, ratio=count/sum(count))
+  m1 = plyr::ddply(data.m, plyr::.(category), plyr::summarize, ratio=count/sum(count))
   #order data frame (needed to comply with percentage column):
   m2 = data.m[order(data.m$category),]
   # combine them:
   mydf = data.frame(m2,ratio=m1$ratio)
   # get positions of percentage labels:
-  mydf = ddply(mydf, .(category), transform, position = cumsum(ratio) - 0.5*ratio)
+  mydf = plyr::ddply(mydf, plyr::.(category), transform, position = cumsum(ratio) - 0.5*ratio)
   # create bar plot
   colnames(mydf)[2]<-"Legende"
   mydf$Legende<-as.factor(mydf$Legende)
@@ -2388,10 +2478,11 @@ ggbars<-function(Y,X="Variable"){
   G<-as.factor(rep(levels(as.factor(X)),dim(prop.table(table(X,Y),1))[2]))
   D<-data.frame(pc,Groupe,G)
   
-  graph <- ggplot(data=D, aes(x=G, y=pc,fill=Groupe)) +                  
+  graph <- ggplot(data=D, aes(x=G, y=pc,fill=Groupe)) +
     geom_bar(stat="identity",position = "dodge",ymax=100) + xlab(nomX)+ ylab("%")+
-    geom_text(aes(label =paste(round(pc*100,0),"%",sep=""),ymax=0),position=position_dodge(width=0.9), vjust=-0.25)
-  
-  return(graph) 
+    geom_text(aes(label =paste(round(pc*100,0),"%",sep=""),ymax=0),position=position_dodge(width=0.9), vjust=-0.25)+
+    theme_gmrc()
+
+  return(graph)
   
 }

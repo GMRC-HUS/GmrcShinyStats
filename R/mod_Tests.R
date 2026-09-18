@@ -41,8 +41,8 @@ mod_Tests_server <- function(id,r){
                             
                             
                             
-                            fluidPage(
-                              title = 'Examples of DataTables',
+                             fluidPage(
+                               title = 'Test diagnostique univarié',
                               sidebarLayout(
                                 sidebarPanel(
                                   p("Sélectionnez la variable qualitative codée 0 ou 1 à expliquer."),
@@ -62,7 +62,7 @@ mod_Tests_server <- function(id,r){
                                     )
                                   ),#finFluidRow
                                   
-                                  tags$head(tags$style(".butt{background-color:#E9967A;} .butt{color: black;}")),
+
                                   navbarPage(title=NULL,
                                              id='datasetlogit',
                                              tabPanel('Variables sélectionnées',
@@ -81,8 +81,9 @@ mod_Tests_server <- function(id,r){
                                                         checkboxInput(ns("LOGIToptionsIntervalle"), "Afficher intervalle de confiance courbe ROC", FALSE)
                                                       ),
                                                       h3("Courbe ROC associée"),
-                                                      plotOutput(ns('LogitROC')),
-                                                      br(),br(),
+    plotOutput(ns('LogitROC')),
+                                                       downloadButton(ns('pngPLOT_ROC'), label = "Télécharger la courbe ROC (PNG)", class = "butt"),
+                                                       br(),br(),
                                                       h3("Meilleur seuil estimé par maximisation de l'indice de Youden"),
                                                       tableOutput(ns('LogitROCtableauBEST')),
                                                       br(),br(),
@@ -95,9 +96,9 @@ mod_Tests_server <- function(id,r){
                                                       tableOutput(ns('LogitPERFtableauBEST')),br(),
                                                       h4("Pour un tel seuil le tableau croisé devient:"),
                                                       tableOutput(ns('LogitPERF3')),br(),
-                                                      h4("La sensibilité et la specificité sont:"),
-                                                      tableOutput(ns('LogitPERF1')),br(),
-                                                      h4("La critères de performances sont alors"),
+                                                       h4("La sensibilité et la spécificité sont:"),
+                                                       tableOutput(ns('LogitPERF1')),br(),
+                                                       h4("Les critères de performance sont alors :"),
                                                       tableOutput(ns('LogitPERF2')),
                                                       p("Attention, si l'évènement est associé à une mesure inférieure au cut, la lecture des VP, VN, FP, FN, VPP et VPN est inversée dans ce dernier tableau. 
                                                                              Il faut alors se référer au tableau à 4 cases sur le haut de cette page."),br()
@@ -127,8 +128,8 @@ mod_Tests_server <- function(id,r){
     
     observe({
     output$testsDiagnostiques = renderUI({
-      if(!r$BASEchargee) do.call(tabPanel,pasDeBase)
-      else do.call(tabPanel,testsDiagnostiques)
+      if(!r$BASEchargee) pasDeBase
+      else testsDiagnostiques
     })
     })
     
@@ -153,36 +154,65 @@ mod_Tests_server <- function(id,r){
       #variablesurvie2 <-base[,colnames(base)==input$variableLogit2]
       variablesurvie2 <-base %>% select(input$variableLogit2)
       variablesurvie2 <- variablesurvie2[[1]]
-      data.frame(Reponse=variablesurvie1, Facteur=variablesurvie2)
-      },rownames=TRUE)
+       data.frame(Reponse=variablesurvie1, Facteur=variablesurvie2)
+       },rownames=TRUE)
+
+    observeEvent(c(input$variableLogit1, input$variableLogit2),
+                 ignoreInit = TRUE, {
+      base <- r$BDD
+      if (is.null(base)) {
+        return(invisible(NULL))
+      }
+      if (is.null(input$variableLogit1) || is.null(input$variableLogit2)) {
+        return(invisible(NULL))
+      }
+      x <- base %>% select(input$variableLogit1)
+      x <- x[[1]]
+      y <- base %>% select(input$variableLogit2)
+      y <- y[[1]]
+      rocobj <- tryCatch(roc(x, y, percent = TRUE, quiet = TRUE), error = function(e) NULL)
+      if (is.null(rocobj)) {
+        return(invisible(NULL))
+      }
+      auc <- tryCatch(round(attr(rocobj, "auc"), 3), error = function(e) NA)
+      seuil <- tryCatch(round(ci.thresholds(rocobj, ret = "best")$best$threshold, 3),
+                        error = function(e) NA)
+      enregistrer_resultat(r, "Tests diagnostiques",
+                           paste("ROC :", input$variableLogit1, "(", input$variableLogit2, ")"),
+                           paste("AUC =", auc, "; seuil optimal (Youden) =", seuil))
+    })
 #     
 # 
 # 
 # 
 # 
+    dessinerPLOT_ROC <- function() {
+      base <- r$BDD
+
+      variablesurvie1 <- base %>% select(input$variableLogit1)
+      variablesurvie1 <- variablesurvie1[[1]]
+      variablesurvie2 <- base %>% select(input$variableLogit2)
+      variablesurvie2 <- variablesurvie2[[1]]
+
+      optionsAUC   <- isTRUE(input$LOGIToptionsAUC)
+      optionsSEUIL <- isTRUE(input$LOGIToptionsSEUIL)
+      optionsCI    <- isTRUE(input$LOGIToptionsIntervalle)
+      rocobj <- plot.roc(variablesurvie1, variablesurvie2, percent = TRUE, ci = optionsCI, print.auc = optionsAUC)
+
+      if (optionsSEUIL) {
+        optimums <- ci(rocobj, of = "thresholds", thresholds = "best")
+        abline(v = optimums$est, lty = 2, col = "red")
+        mtext(paste("Seuil optimal :", round(optimums$est, 2)), side = 1, line = 0.5, col = "red")
+      }
+    }
 output$LogitROC <- renderPlot({
-  base    <-r$BDD
-  D       <-base
-
-  #variablesurvie1 <-base[,colnames(base)==input$variableLogit1]
-  variablesurvie1 <-base %>% select(input$variableLogit1)
-  variablesurvie1 <- variablesurvie1[[1]]
-  #variablesurvie2 <-base[,colnames(base)==input$variableLogit2]
-  variablesurvie2 <-base %>% select(input$variableLogit2)
-  variablesurvie2 <- variablesurvie2[[1]]
-
-
-  rocobj<-plot.roc(variablesurvie1,variablesurvie2, percent=TRUE,ci=TRUE,print.auc=input$LOGIToptionsAUC)
-
-
-  if(input$LOGIToptionsSEUIL){
-    optimums       <-ci(rocobj, of="thresholds", thresholds="best")
-    plot(optimums) }
-
-  if(input$LOGIToptionsIntervalle){
-    ciobj           <- ci.se(rocobj, specificities=seq(0, 100, 5))
-    plot(ciobj, type="shape", col="#1c61b6AA") }
+  dessinerPLOT_ROC()
 })
+
+    output$pngPLOT_ROC <- downloadHandler(
+      filename = function() paste0("roc_", input$variableLogit1, "_", input$variableLogit2, ".png"),
+      content = function(file) export_png(file, dessinerPLOT_ROC)
+    )
 })
  
  
@@ -196,15 +226,10 @@ output$LogitROC <- renderPlot({
       variablesurvie1 <-base %>% select(input$variableLogit1)
       variablesurvie1 <- variablesurvie1[[1]]
       #variablesurvie2 <-base[,colnames(base)==input$variableLogit2]
-      variablesurvie2 <-base %>% select(input$variableLogit2)
-      variablesurvie2 <- variablesurvie2[[1]]
+       variablesurvie2 <-base %>% select(input$variableLogit2)
+       variablesurvie2 <- variablesurvie2[[1]]
 
-print("variablesurvie1")
-print(variablesurvie1)
-print("variablesurvie2")
-print(variablesurvie2)
-
-  rocobj<-roc(variablesurvie1,variablesurvie2, percent=TRUE,ci=TRUE,print.auc=input$LOGIToptionsAUC)
+   rocobj<-roc(variablesurvie1,variablesurvie2, percent=TRUE,ci=TRUE,print.auc=input$LOGIToptionsAUC)
   x<-ci.thresholds(rocobj)
 
   MatriceSEUILS<-cbind(
@@ -308,7 +333,7 @@ observe({
      x<-base %>% select(input$variableLogit2)
      x<-x[[1]]
 
-      rocobj                  <-roc(y,x,main=titre, percent=TRUE,ci=TRUE,print.auc=TRUE)
+      rocobj                  <-roc(y,x,main=input$variableLogit2, percent=TRUE,ci=TRUE,print.auc=TRUE)
       optimums                <-ci(rocobj, of="thresholds", thresholds="best")
 
       AUC                     <-c( round(rocobj$ci[1],2),  round(rocobj$ci[2],2),  round(rocobj$ci[3],2) )
@@ -335,7 +360,7 @@ observe({
       x<-base %>% select(input$variableLogit2)
       x<-x[[1]]
       
-      rocobj<-roc(y,x,main=titre, percent=TRUE,ci=TRUE,print.auc=TRUE)
+      rocobj<-roc(y,x,main=input$variableLogit2, percent=TRUE,ci=TRUE,print.auc=TRUE)
       optimums<-ci(rocobj, of="thresholds", thresholds="best")
 
       best.cut<-as.numeric(rownames(round(optimums$sensitivity,2)))
@@ -370,7 +395,7 @@ observe({
       x<-base %>% select(input$variableLogit2)
       x<-x[[1]]
       
-      rocobj<-roc(y,x,main=titre, percent=TRUE,ci=TRUE,print.auc=TRUE)
+      rocobj<-roc(y,x,main=input$variableLogit2, percent=TRUE,ci=TRUE,print.auc=TRUE)
       optimums<-ci(rocobj, of="thresholds", thresholds="best")
 
       best.cut<-as.numeric(rownames(round(optimums$sensitivity,2)))
