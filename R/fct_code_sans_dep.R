@@ -6,16 +6,16 @@
 #'
 #' @noRd
 #'
-#' @importFrom stats IQR addmargins aggregate ansari.test aov as.formula
+#' @importFrom stats IQR addmargins aggregate aov as.formula
 #'     bartlett.test binom.test chisq.test complete.cases confint cor.test
-#'     density dgamma dnorm fligner.test fisher.test fitted glm integrate
+#'     density dgamma dnorm fisher.test fitted glm integrate
 #'     kruskal.test ks.test mcnemar.test median optimize pchisq predict
 #'     qbeta qchisq qnorm qqline qqnorm qt quantile sd shapiro.test t.test
 #'     var.test wilcox.test
 #' @importFrom graphics axis barplot boxplot curve hist legend lines par
 #'     points rect segments text
 #' @importFrom grDevices colorRampPalette nclass.Sturges
-#' @importFrom moments ansari.test fligner.test kurtosis skewness
+#' @importFrom moments kurtosis skewness
 #' @importFrom survival Surv survfit survdiff
 
 #setInternet2(TRUE)
@@ -27,10 +27,28 @@ cs<-function(x){
 rdpv<-function(x){
   res<-NA
   if(!is.na(x)){
-    if(x<0.01){res<-"<0.01"}
+    if(x<0.01){res<- "<0.01"}
     if(x>=0.01){res<-round(x,3)}
   }
   return(res)}
+
+ansari_test<-function(...) {
+  for (pkg in c("car", "stats", "moments")) {
+    if (requireNamespace(pkg, quietly = TRUE) && "ansari.test" %in% getNamespaceExports(pkg)) {
+      return(get("ansari.test", envir = asNamespace(pkg))(...))
+    }
+  }
+  stop("ansari.test introuvable : installez le paquet 'car' (install.packages('car')).", call. = FALSE)
+}
+
+fligner_test<-function(...) {
+  for (pkg in c("car", "stats", "moments")) {
+    if (requireNamespace(pkg, quietly = TRUE) && "fligner.test" %in% getNamespaceExports(pkg)) {
+      return(get("fligner.test", envir = asNamespace(pkg))(...))
+    }
+  }
+  stop("fligner.test introuvable : installez le paquet 'car' (install.packages('car')).", call. = FALSE)
+}
 
 
 IC.diff.prop<-function(x1,n1,x2,n2,alpha01=0.5,alpha02=0.5,beta01=0.5,beta02=0.5,val=0.95){
@@ -527,7 +545,7 @@ descr3<-function(Y,X,Tap=FALSE,nom=NULL, nomY =NULL, latex=0){
   pvalnorm[2]<-ks.test(Y,"pnorm",mean(Y,na.rm=T),sd(Y,na.rm=T))$p.value
   pvalnorm<-round(pvalnorm,digits=4)
   
-  if(nlevels(X)==2){pvalfl2g<-format.pval(ansari.test(Y~X)$p.value,digits=4)}else{if(nlevels(X)>2){pvalfl3g<-format.pval(fligner.test(Y~X)$p.value,digits=4)}}
+  if(nlevels(X)==2){pvalfl2g<-format.pval(ansari_test(Y~X)$p.value,digits=4)}else{if(nlevels(X)>2){pvalfl3g<-format.pval(fligner_test(Y~X)$p.value,digits=4)}}
   
   if(nlevels(X)==2){testnpv<-paste(list(paste("Test non param. d'egalite de deux variances (Ansari) : p =",pvalfl2g)
   ))
@@ -818,7 +836,7 @@ croisements<-function(numero.variable.dinteret,D,qualiF,quantiF,affichage=40){
           p.norm.1    <-      try(shapiro.test(D[,quantitatives][,i][Y==attr(table(Y),"dimnames")$Y[1]])$p.value,silent=TRUE)           
           p.norm.2    <-      try(shapiro.test(D[,quantitatives][,i][Y==attr(table(Y),"dimnames")$Y[2]])$p.value,silent=TRUE)
           p3          <-round(try(var.test    (D[,quantitatives][,i][Y==attr(table(Y),"dimnames")$Y[1]],D[,quantitatives][,i][Y==attr(table(Y),"dimnames")$Y[2]])$p.value,silent=TRUE),2)
-          p4          <-round(try(ansari.test (D[,quantitatives][,i][Y==attr(table(Y),"dimnames")$Y[1]],D[,quantitatives][,i][Y==attr(table(Y),"dimnames")$Y[2]])$p.value,silent=TRUE),2)
+          p4          <-round(try(ansari_test (D[,quantitatives][,i][Y==attr(table(Y),"dimnames")$Y[1]],D[,quantitatives][,i][Y==attr(table(Y),"dimnames")$Y[2]])$p.value,silent=TRUE),2)
           
           
           
@@ -1742,6 +1760,7 @@ ggsurv <- function(s, CI = 'def', plot.cens = T, surv.col = 'gg.def',           
 ###########################################################################################################
 
 
+#' @exportS3Method NULL
 plot.na2<-function(D,cumul=0,latex=0){
   
   if(cumul==2){D<-t(D)}
@@ -1774,6 +1793,7 @@ plot.na2<-function(D,cumul=0,latex=0){
 }
 
 
+#' @exportS3Method NULL
 plot.na <- function(data_in, title = NULL){
   temp_df <- as.data.frame(ifelse(is.na(data_in), 1, 0))
   temp_df <- temp_df[,order(colSums(temp_df))]
@@ -1842,7 +1862,8 @@ correl<-function(x,y,droite=1, nomx=NULL , nomy = NULL){
 ###########################################################################################################
 ###########################################################################################################
 
-plot.evol2<-function(DT,groups,main,etyp=0) { 
+#' @exportS3Method NULL
+plot.evol2<-function(DT,groups,main,etyp=0) {
   
   par.groupes<-0
   if(missing(main)){main=""}
@@ -1931,6 +1952,7 @@ expand_dfmatrix<-function(df){
   }
   as.data.frame(out)
 }
+#' @exportS3Method NULL
 plot.evol<-function(  Trajectoires,  Groupe=NULL,  IC = FALSE,  Moyenne = TRUE,  Temps = NULL,  label_x = "Temps",  label_y= "Valeur",  labels_ticks_x=NULL){
   
   

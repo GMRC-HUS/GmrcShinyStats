@@ -6,7 +6,6 @@
 #' @import shinydashboardPlus
 #' @importFrom shinydashboard dashboardBody sidebarMenu menuItem tabItem tabItems
 #' @noRd
-#' @dashboardthemes
 
 #source("./theme.R", local = TRUE)
 

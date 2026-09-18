@@ -108,6 +108,7 @@ diagrammeBarre <- function(base){
   
 }
 
+#' @exportS3Method NULL
 t.testVarEgal<- function(x,...){
   t.test(x,var.equal = T,...)
 }
