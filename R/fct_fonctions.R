@@ -199,6 +199,48 @@ interpretation_kappa <- function(k) {
   return("presque parfait")
 }
 
+extraire_variable <- function(base, nom) {
+  if (is.null(base) || is.null(nom) || !nom %in% colnames(base)) {
+    return(NULL)
+  }
+  base[[nom]]
+}
+
+table_croise_securise <- function(x, y, useNA = "no") {
+  if (is.null(x) || is.null(y) || length(x) == 0 || length(y) == 0) {
+    return(NULL)
+  }
+  tab <- tryCatch(table(x, y, useNA = useNA), error = function(e) NULL)
+  if (is.null(tab) || sum(tab) == 0) {
+    return(NULL)
+  }
+  tab
+}
+
+test_chi2_securise <- function(tab) {
+  if (is.null(tab) || sum(tab) == 0) {
+    return(NULL)
+  }
+  res <- tryCatch(
+    suppressWarnings(chisq.test(tab, correct = FALSE)),
+    error = function(e) NULL
+  )
+  if (is.null(res) || is.na(res$p.value)) {
+    return(NULL)
+  }
+  res
+}
+
+test_fisher_securise <- function(tab) {
+  if (is.null(tab)) {
+    return(NULL)
+  }
+  if (any(dim(tab) < 2) || any(dim(tab) > 50) || max(tab) > 1e6) {
+    return(NULL)
+  }
+  tryCatch(fisher.test(tab), error = function(e) NULL)
+}
+
 file.choose2 <- function(...) {
   pathname <- NULL;
   tryCatch({

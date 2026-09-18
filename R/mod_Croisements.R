@@ -202,8 +202,11 @@ mod_Croisements_server <- function(id, r){
       }
       q1 <- input$qualiquantiCROISE1
       q2 <- input$qualiquantiCROISE2
-      x <- base[, var1]
-      y <- base[, var2]
+      x <- extraire_variable(base, var1)
+      y <- extraire_variable(base, var2)
+      if (is.null(x) || is.null(y)) {
+        return(invisible(NULL))
+      }
       if (q1 == "quant" && q2 == "quant") {
         ct <- tryCatch(cor.test(x, y), error = function(e) NULL)
         if (is.null(ct)) {
@@ -211,10 +214,16 @@ mod_Croisements_server <- function(id, r){
         }
         res <- paste("r =", round(ct$estimate, 3), "; p =", round(ct$p.value, 3))
       } else if (q1 == "qual" && q2 == "qual") {
-        tab <- table(x, y)
+        tab <- table_croise_securise(x, y)
+        if (is.null(tab)) {
+          return(invisible(NULL))
+        }
         pv <- tryCatch(
           suppressWarnings(chisq.test(tab)$p.value),
-          warning = function(w) fisher.test(tab)$p.value,
+          warning = function(w) {
+            fi <- test_fisher_securise(tab)
+            if (is.null(fi)) NA else fi$p.value
+          },
           error = function(e) NA
         )
         res <- paste("p =", round(pv, 3))
@@ -228,8 +237,18 @@ mod_Croisements_server <- function(id, r){
 
     dessinerPLOT_CROISE1 <- function() {
       base            <- r$BDD
-      variableCROISE1 <- base[, input$variableCROISE1]
-      variableCROISE2 <- base[, input$variableCROISE2]
+      variableCROISE1 <- extraire_variable(base, input$variableCROISE1)
+      variableCROISE2 <- extraire_variable(base, input$variableCROISE2)
+      if (is.null(variableCROISE1) || is.null(variableCROISE2)) {
+        graphics::plot.new()
+        text(0.5, 0.5, "Sélectionnez deux variables.")
+        return(invisible(NULL))
+      }
+      if (all(is.na(variableCROISE1)) || all(is.na(variableCROISE2))) {
+        graphics::plot.new()
+        text(0.5, 0.5, "Aucune valeur non manquante pour ce croisement.")
+        return(invisible(NULL))
+      }
       if (input$qualiquantiCROISE1 == "quant" & input$qualiquantiCROISE2 == "quant") {
         print(ggpoints(variableCROISE1, variableCROISE2, nomx = input$variableCROISE1, nomy = input$variableCROISE2))
       }
@@ -249,8 +268,16 @@ mod_Croisements_server <- function(id, r){
 
     dessinerPLOT_CROISE2 <- function() {
       base            <- r$BDD
-      variableCROISE1 <- base[, colnames(base) == input$variableCROISE1]
-      variableCROISE2 <- base[, colnames(base) == input$variableCROISE2]
+      variableCROISE1 <- extraire_variable(base, input$variableCROISE1)
+      variableCROISE2 <- extraire_variable(base, input$variableCROISE2)
+      if (is.null(variableCROISE1) || is.null(variableCROISE2)) {
+        print(ggplot2::ggplot() + ggplot2::annotate("text", x = 0.5, y = 0.5, label = "Sélectionnez deux variables.") + ggplot2::theme_void())
+        return(invisible(NULL))
+      }
+      if (all(is.na(variableCROISE1)) || all(is.na(variableCROISE2))) {
+        print(ggplot2::ggplot() + ggplot2::annotate("text", x = 0.5, y = 0.5, label = "Aucune valeur non manquante pour ce croisement.") + ggplot2::theme_void())
+        return(invisible(NULL))
+      }
       if (input$qualiquantiCROISE1 == "quant" & input$qualiquantiCROISE2 == "quant") {
         print(correl(variableCROISE1, variableCROISE2, nomx = input$variableCROISE1, nomy = input$variableCROISE2))
       }
@@ -281,9 +308,14 @@ mod_Croisements_server <- function(id, r){
     output$montableauCroisAUTO <- renderText({
 
       base    <-r$BDD
-      x <-base[,input$variableCROISE1]
-      y <-base[,input$variableCROISE2]
-      Matrice    <-  addmargins(table(x,y, dnn = c(input$variableCROISE1,input$variableCROISE2), useNA =  input$NATableau))
+      x <-extraire_variable(base, input$variableCROISE1)
+      y <-extraire_variable(base, input$variableCROISE2)
+      tab <- table_croise_securise(x, y, useNA = input$NATableau)
+      if (is.null(tab)) {
+        return(HTML("Aucun tableau croisé n'est possible avec les variables sélectionnées."))
+      }
+      names(dimnames(tab)) <- c(input$variableCROISE1, input$variableCROISE2)
+      Matrice    <-  addmargins(tab)
       colnames(Matrice)<- ifelse(is.na(colnames(Matrice)), "Données Manquantes",colnames(Matrice))
       rownames(Matrice)<- ifelse(is.na(rownames(Matrice)), "Données Manquantes",rownames(Matrice))
       var2<-input$variableCROISE2
@@ -305,9 +337,13 @@ mod_Croisements_server <- function(id, r){
 
     output$montableauCroise2AUTO <- renderText({
       base    <-r$BDD
-      x <-base[,colnames(base)==input$variableCROISE1]
-      y <-base[,colnames(base)==input$variableCROISE2]
-      Matrice    <- addmargins(100 * prop.table(addmargins(table(x,y, useNA = input$NATableau), 1), 1), 2)
+      x <-extraire_variable(base, input$variableCROISE1)
+      y <-extraire_variable(base, input$variableCROISE2)
+      tab <- table_croise_securise(x, y, useNA = input$NATableau)
+      if (is.null(tab)) {
+        return(HTML("Aucun tableau croisé n'est possible avec les variables sélectionnées."))
+      }
+      Matrice    <- addmargins(100 * prop.table(addmargins(tab, 1), 1), 2)
       colnames(Matrice)<- ifelse(is.na(colnames(Matrice)), "Données Manquantes",colnames(Matrice))
       rownames(Matrice)<- ifelse(is.na(rownames(Matrice)), "Données Manquantes",rownames(Matrice))
       var2<-input$variableCROISE2
@@ -331,9 +367,13 @@ mod_Croisements_server <- function(id, r){
 
     output$montableauCroise3AUTO <-renderText({
       base    <-r$BDD
-      x <-base[,colnames(base)==input$variableCROISE1]
-      y <-base[,colnames(base)==input$variableCROISE2]
-      Matrice    <- addmargins(100 * prop.table(addmargins(table(x,y, useNA = input$NATableau), 2), 2), 1)
+      x <-extraire_variable(base, input$variableCROISE1)
+      y <-extraire_variable(base, input$variableCROISE2)
+      tab <- table_croise_securise(x, y, useNA = input$NATableau)
+      if (is.null(tab)) {
+        return(HTML("Aucun tableau croisé n'est possible avec les variables sélectionnées."))
+      }
+      Matrice    <- addmargins(100 * prop.table(addmargins(tab, 2), 2), 1)
       colnames(Matrice)<- ifelse(is.na(colnames(Matrice)), "Données Manquantes",colnames(Matrice))
       rownames(Matrice)<- ifelse(is.na(rownames(Matrice)), "Données Manquantes",rownames(Matrice))
       var2<-input$variableCROISE2
@@ -361,10 +401,12 @@ mod_Croisements_server <- function(id, r){
 
     output$AUTOtableCHI2 <- shiny::renderTable({
       base    <-r$BDD
-      x <-base[,colnames(base)==input$variableCROISE1]
-      y <-base[,colnames(base)==input$variableCROISE2]
-      Mat    <- table(x,y)
-      CH2<-chisq.test(Mat,correct=FALSE)
+      x <-extraire_variable(base, input$variableCROISE1)
+      y <-extraire_variable(base, input$variableCROISE2)
+      CH2    <- test_chi2_securise(table_croise_securise(x, y))
+      if (is.null(CH2)) {
+        return(data.frame(Resultat = "Test du Chi2 inapplicable avec ce croisement."))
+      }
       resTESTS<-cbind(CH2$statistic,CH2$parameter,CH2$p.value)
       colnames(resTESTS)<-c("CHI2 Stat","CHI2 Degrés","CHI2 pValue")
       rownames(resTESTS)<-"Résultat"
@@ -373,10 +415,12 @@ mod_Croisements_server <- function(id, r){
 
     output$AUTOtableFISHER <- shiny::renderTable({
       base    <-r$BDD
-      x <-base[,colnames(base)==input$variableCROISE1]
-      y <-base[,colnames(base)==input$variableCROISE2]
-      Mat    <- table(x,y)
-      FI2<-fisher.test(Mat)
+      x <-extraire_variable(base, input$variableCROISE1)
+      y <-extraire_variable(base, input$variableCROISE2)
+      FI2    <- test_fisher_securise(table_croise_securise(x, y))
+      if (is.null(FI2)) {
+        return(data.frame(Resultat = "Test exact de Fisher inapplicable avec ce croisement."))
+      }
       resTESTS<-t(t( FI2$p.value))
       colnames(resTESTS)<-c("Fisher pValue")
       rownames(resTESTS)<-"Résultat"
@@ -386,28 +430,35 @@ mod_Croisements_server <- function(id, r){
 
     output$AUTOCHI2conditions <- renderText({
       base    <-r$BDD
-      x <-base[,colnames(base)==input$variableCROISE1]
-      y <-base[,colnames(base)==input$variableCROISE2]
-      Mat    <- table(x,y)
-      CH2<-chisq.test(Mat,correct=FALSE)
-      FI2<-fisher.test(Mat)
+      x <-extraire_variable(base, input$variableCROISE1)
+      y <-extraire_variable(base, input$variableCROISE2)
+      CH2    <- test_chi2_securise(table_croise_securise(x, y))
+      if (is.null(CH2)) {
+        return("Test d'association inapplicable avec les variables sélectionnées.")
+      }
       ifelse(all(CH2$expected>5),"Au vu des effectifs théoriques >5, on préfèrera ici l'utilisation du test du Chi2",
-             "Au vu des faibles effectifs théoriques, on préfèrera ici l'utilisation du test exact de Fisher")
+              "Au vu des faibles effectifs théoriques, on préfèrera ici l'utilisation du test exact de Fisher")
     })
 
     output$oddratioAUTO <- renderTable({
       base    <-r$BDD
-      x <-base[,colnames(base)==input$variableCROISE1]
-      y <-base[,colnames(base)==input$variableCROISE2]
-      Mat    <- table(x,y)
-
+      x <-extraire_variable(base, input$variableCROISE1)
+      y <-extraire_variable(base, input$variableCROISE2)
+      Mat    <- table_croise_securise(x, y)
+      if (is.null(Mat)) {
+        return(data.frame(Resultat = "Rapport de cotes inapplicable avec ce croisement."))
+      }
       Nblignes   <-dim(Mat)[1]
       Nbcolonnes <-dim(Mat)[2]
       if(Nblignes>2 | Nbcolonnes>2){OR<-NULL}else{
-        FI2<-fisher.test(Mat)
-        OR<-cbind(FI2$estimate , FI2$conf.int[[1]],FI2$conf.int[[2]])
-        colnames(OR)<-c("Rapport de cotes","Borne inf 2.5","Borne Sup 97.5")
-        rownames(OR)<-"Résultat"}
+        FI2<-test_fisher_securise(Mat)
+        if (is.null(FI2)) {
+          OR <- data.frame(Resultat = "Rapport de cotes inapplicable avec ce croisement.")
+        } else {
+          OR<-cbind(FI2$estimate , FI2$conf.int[[1]],FI2$conf.int[[2]])
+          colnames(OR)<-c("Rapport de cotes","Borne inf 2.5","Borne Sup 97.5")
+          rownames(OR)<-"Résultat"}
+      }
       OR
     }, caption = "Rapport de cotes et IC",
     caption.placement = getOption("xtable.caption.placement", "bottom"),
@@ -416,10 +467,18 @@ mod_Croisements_server <- function(id, r){
 
     output$descr3DESCRIPTIF<- renderTable({
       base    <-r$BDD
-      variableCROISE1 <-base[,colnames(base)==input$variableCROISE1]
-      variableCROISE2 <-base[,colnames(base)==input$variableCROISE2]
-      if(input$qualiquantiCROISE1=="quant" & input$qualiquantiCROISE2=="qual"){res<-descr3(variableCROISE1,variableCROISE2,nom = input$variableCROISE2, nomY = input$variableCROISE1)}
-      if(input$qualiquantiCROISE1=="qual" & input$qualiquantiCROISE2=="quant"){res<-descr3(variableCROISE2,variableCROISE1,nom = input$variableCROISE1, nomY = input$variableCROISE2)}
+      variableCROISE1 <-extraire_variable(base, input$variableCROISE1)
+      variableCROISE2 <-extraire_variable(base, input$variableCROISE2)
+      res <- NULL
+      if(input$qualiquantiCROISE1=="quant" & input$qualiquantiCROISE2=="qual"){
+        res <- tryCatch(descr3(variableCROISE1,variableCROISE2,nom = input$variableCROISE2, nomY = input$variableCROISE1), error = function(e) NULL)
+      }
+      if(input$qualiquantiCROISE1=="qual" & input$qualiquantiCROISE2=="quant"){
+        res <- tryCatch(descr3(variableCROISE2,variableCROISE1,nom = input$variableCROISE1, nomY = input$variableCROISE2), error = function(e) NULL)
+      }
+      if (is.null(res)) {
+        return(NULL)
+      }
       res$Descriptif
     }, caption = "Descriptif global et par modalité",
     caption.placement = getOption("xtable.caption.placement", "bottom"),
@@ -427,45 +486,85 @@ mod_Croisements_server <- function(id, r){
 
     output$descr3TestNormalite<- renderPrint({
       base    <-r$BDD
-      variableCROISE1 <-base[,colnames(base)==input$variableCROISE1]
-      variableCROISE2 <-base[,colnames(base)==input$variableCROISE2]
-      if(input$qualiquantiCROISE1=="quant" & input$qualiquantiCROISE2=="qual"){res<-descr3(variableCROISE1,variableCROISE2)}
-      if(input$qualiquantiCROISE1=="qual" & input$qualiquantiCROISE2=="quant"){res<-descr3(variableCROISE2,variableCROISE1)}
+      variableCROISE1 <-extraire_variable(base, input$variableCROISE1)
+      variableCROISE2 <-extraire_variable(base, input$variableCROISE2)
+      res <- NULL
+      if(input$qualiquantiCROISE1=="quant" & input$qualiquantiCROISE2=="qual"){
+        res <- tryCatch(descr3(variableCROISE1,variableCROISE2), error = function(e) NULL)
+      }
+      if(input$qualiquantiCROISE1=="qual" & input$qualiquantiCROISE2=="quant"){
+        res <- tryCatch(descr3(variableCROISE2,variableCROISE1), error = function(e) NULL)
+      }
+      if (is.null(res)) {
+        return(HTML("Sélectionnez une variable quantitative et une variable qualitative."))
+      }
       print(res$TestNormalite)
     })
     output$descr3Testpv<- renderPrint({
       base    <-r$BDD
-      variableCROISE1 <-base[,colnames(base)==input$variableCROISE1]
-      variableCROISE2 <-base[,colnames(base)==input$variableCROISE2]
-      if(input$qualiquantiCROISE1=="quant" & input$qualiquantiCROISE2=="qual"){res<-descr3(variableCROISE1,variableCROISE2)}
-      if(input$qualiquantiCROISE1=="qual" & input$qualiquantiCROISE2=="quant"){res<-descr3(variableCROISE2,variableCROISE1)}
+      variableCROISE1 <-extraire_variable(base, input$variableCROISE1)
+      variableCROISE2 <-extraire_variable(base, input$variableCROISE2)
+      res <- NULL
+      if(input$qualiquantiCROISE1=="quant" & input$qualiquantiCROISE2=="qual"){
+        res <- tryCatch(descr3(variableCROISE1,variableCROISE2), error = function(e) NULL)
+      }
+      if(input$qualiquantiCROISE1=="qual" & input$qualiquantiCROISE2=="quant"){
+        res <- tryCatch(descr3(variableCROISE2,variableCROISE1), error = function(e) NULL)
+      }
+      if (is.null(res)) {
+        return(HTML("Sélectionnez une variable quantitative et une variable qualitative."))
+      }
       print(res$Testpv)
     })
     output$descr3TestsNPv<- renderPrint({
       base    <-r$BDD
-      variableCROISE1 <-base[,colnames(base)==input$variableCROISE1]
-      variableCROISE2 <-base[,colnames(base)==input$variableCROISE2]
-      if(input$qualiquantiCROISE1=="quant" & input$qualiquantiCROISE2=="qual"){res<-descr3(variableCROISE1,variableCROISE2)}
-      if(input$qualiquantiCROISE1=="qual" & input$qualiquantiCROISE2=="quant"){res<-descr3(variableCROISE2,variableCROISE1)}
+      variableCROISE1 <-extraire_variable(base, input$variableCROISE1)
+      variableCROISE2 <-extraire_variable(base, input$variableCROISE2)
+      res <- NULL
+      if(input$qualiquantiCROISE1=="quant" & input$qualiquantiCROISE2=="qual"){
+        res <- tryCatch(descr3(variableCROISE1,variableCROISE2), error = function(e) NULL)
+      }
+      if(input$qualiquantiCROISE1=="qual" & input$qualiquantiCROISE2=="quant"){
+        res <- tryCatch(descr3(variableCROISE2,variableCROISE1), error = function(e) NULL)
+      }
+      if (is.null(res)) {
+        return(HTML("Sélectionnez une variable quantitative et une variable qualitative."))
+      }
       print(res$TestsNPv)
     })
 
     output$descr3Tests_de_Student<- renderPrint({
       base    <-r$BDD
-      variableCROISE1 <-base[,colnames(base)==input$variableCROISE1]
-      variableCROISE2 <-base[,colnames(base)==input$variableCROISE2]
-      if(input$qualiquantiCROISE1=="quant" & input$qualiquantiCROISE2=="qual"){res<-descr3(variableCROISE1,variableCROISE2)}
-      if(input$qualiquantiCROISE1=="qual" & input$qualiquantiCROISE2=="quant"){res<-descr3(variableCROISE2,variableCROISE1)}
+      variableCROISE1 <-extraire_variable(base, input$variableCROISE1)
+      variableCROISE2 <-extraire_variable(base, input$variableCROISE2)
+      res <- NULL
+      if(input$qualiquantiCROISE1=="quant" & input$qualiquantiCROISE2=="qual"){
+        res <- tryCatch(descr3(variableCROISE1,variableCROISE2), error = function(e) NULL)
+      }
+      if(input$qualiquantiCROISE1=="qual" & input$qualiquantiCROISE2=="quant"){
+        res <- tryCatch(descr3(variableCROISE2,variableCROISE1), error = function(e) NULL)
+      }
+      if (is.null(res)) {
+        return(HTML("Sélectionnez une variable quantitative et une variable qualitative."))
+      }
       print(res$Tests_de_Student)
     })
 
 
     output$descr3TestsMANN<- renderPrint({
       base    <-r$BDD
-      variableCROISE1 <-base[,colnames(base)==input$variableCROISE1]
-      variableCROISE2 <-base[,colnames(base)==input$variableCROISE2]
-      if(input$qualiquantiCROISE1=="quant" & input$qualiquantiCROISE2=="qual"){res<-descr3(variableCROISE1,variableCROISE2)}
-      if(input$qualiquantiCROISE1=="qual" & input$qualiquantiCROISE2=="quant"){res<-descr3(variableCROISE2,variableCROISE1)}
+      variableCROISE1 <-extraire_variable(base, input$variableCROISE1)
+      variableCROISE2 <-extraire_variable(base, input$variableCROISE2)
+      res <- NULL
+      if(input$qualiquantiCROISE1=="quant" & input$qualiquantiCROISE2=="qual"){
+        res <- tryCatch(descr3(variableCROISE1,variableCROISE2), error = function(e) NULL)
+      }
+      if(input$qualiquantiCROISE1=="qual" & input$qualiquantiCROISE2=="quant"){
+        res <- tryCatch(descr3(variableCROISE2,variableCROISE1), error = function(e) NULL)
+      }
+      if (is.null(res)) {
+        return(HTML("Sélectionnez une variable quantitative et une variable qualitative."))
+      }
       print(res$TestsNP)
     })
 
@@ -473,8 +572,13 @@ mod_Croisements_server <- function(id, r){
 
     output$CorrelationCROISE<- renderPrint({
       base            <-r$BDD
-      variableCROISE1 <-base[,colnames(base)==input$variableCROISE1]
-      variableCROISE2 <-base[,colnames(base)==input$variableCROISE2]
+      variableCROISE1 <-extraire_variable(base, input$variableCROISE1)
+      variableCROISE2 <-extraire_variable(base, input$variableCROISE2)
+      if (is.null(variableCROISE1) || is.null(variableCROISE2) ||
+          !is.numeric(variableCROISE1) || !is.numeric(variableCROISE2) ||
+          all(is.na(variableCROISE1)) || all(is.na(variableCROISE2))) {
+        return(HTML("Les deux variables sélectionnées doivent être quantitatives (numériques)."))
+      }
       x<-variableCROISE1
       y<-variableCROISE2
       resultatCorrelation<-
@@ -496,8 +600,8 @@ mod_Croisements_server <- function(id, r){
 
     output$ChoixSortieCROISE<- renderPrint({
       base            <-r$BDD
-      variableCROISE1 <-base[,colnames(base)==input$variableCROISE1]
-      variableCROISE2 <-base[,colnames(base)==input$variableCROISE2]
+      variableCROISE1 <-extraire_variable(base, input$variableCROISE1)
+      variableCROISE2 <-extraire_variable(base, input$variableCROISE2)
 
 
       ChoixTest<-function(Y,X){
@@ -572,11 +676,15 @@ mod_Croisements_server <- function(id, r){
         }
       }# fin function
 
+      res <- NULL
       if(input$qualiquantiCROISE1=="quant" & input$qualiquantiCROISE2=="qual"){
-        res<-ChoixTest(variableCROISE1,variableCROISE2)
+        res<-tryCatch(ChoixTest(variableCROISE1,variableCROISE2), error = function(e) NULL)
       }
       if(input$qualiquantiCROISE1=="qual" & input$qualiquantiCROISE2=="quant"){
-        res<-ChoixTest(variableCROISE2,variableCROISE1)
+        res<-tryCatch(ChoixTest(variableCROISE2,variableCROISE1), error = function(e) NULL)
+      }
+      if (is.null(res)) {
+        return(HTML("Sélectionnez une variable quantitative et une variable qualitative."))
       }
       res
     })

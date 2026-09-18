@@ -152,3 +152,43 @@ test_that("export_png renders a plot to a PNG file", {
   expect_true(file.info(f)$size > 500)
   unlink(f)
 })
+
+test_that("extraire_variable renvoie le vecteur ou NULL sans erreur", {
+  base <- data.frame(A = c(1, 2, NA), B = c("x", "y", "z"), stringsAsFactors = FALSE)
+  expect_equal(extraire_variable(base, "A"), c(1, 2, NA))
+  expect_equal(extraire_variable(base, "B"), c("x", "y", "z"))
+  expect_null(extraire_variable(base, NULL))
+  expect_null(extraire_variable(base, "inexistant"))
+  expect_null(extraire_variable(NULL, "A"))
+})
+
+test_that("table_croise_securise renvoie NULL pour un croisement inrealisable", {
+  expect_null(table_croise_securise(NULL, c("a", "b")))
+  expect_null(table_croise_securise(c(NA, NA), c("a", "b")))
+  expect_null(table_croise_securise(data.frame(), c("a", "b")))
+  expect_null(table_croise_securise(character(0), c("a", "b")))
+  tab <- table_croise_securise(c("a", "b", "a"), c("x", "x", "y"))
+  expect_s3_class(tab, "table")
+  expect_equal(sum(tab), 3)
+  tabNA <- table_croise_securise(c(NA, "a"), c("x", "y"), useNA = "always")
+  expect_equal(sum(tabNA), 2)
+})
+
+test_that("test_chi2_securise renvoie NULL quand le test est inapplicable", {
+  expect_null(test_chi2_securise(NULL))
+  expect_null(test_chi2_securise(table_croise_securise(c(NA, NA), c("a", "b"))))
+  tab <- table(rep(c("a", "b"), 10), rep(c("x", "y"), 10))
+  res <- test_chi2_securise(tab)
+  expect_false(is.null(res))
+  expect_true(is.numeric(res$p.value))
+})
+
+test_that("test_fisher_securise renvoie NULL quand le test est inapplicable", {
+  expect_null(test_fisher_securise(NULL))
+  expect_null(test_fisher_securise(table_croise_securise(c(NA, NA), c("a", "b"))))
+  expect_null(test_fisher_securise(table(seq_len(200), rep(c("x", "y"), 100))))
+  expect_null(test_fisher_securise(table(rep(1e7, 2), rep(c(1e7, 1), 1))))
+  res <- test_fisher_securise(table(rep(c("a", "b"), 20), rep(c("x", "y"), 20)))
+  expect_false(is.null(res))
+  expect_true(is.numeric(res$estimate))
+})

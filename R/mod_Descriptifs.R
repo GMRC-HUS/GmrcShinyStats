@@ -257,7 +257,10 @@ mod_Descriptifs_server <- function(id,r){
       if (is.null(base)) {
         return(invisible(NULL))
       }
-      variable <- base[, colnames(base) == input$variable]
+      variable <- extraire_variable(base, input$variable)
+      if (is.null(variable)) {
+        return(invisible(NULL))
+      }
       n_eff <- sum(!is.na(variable))
       if (input$qualiquanti == "quant") {
         res <- paste("n =", n_eff,
@@ -277,7 +280,10 @@ mod_Descriptifs_server <- function(id,r){
     
     output$descvar <- renderTable({
       base    <-r$BDD
-      variable<-base[,colnames(base)==input$variable]
+      variable<-extraire_variable(base, input$variable)
+      if (is.null(variable) || !any(!is.na(variable))) {
+        return(data.frame(Resultat = "Sélectionnez une variable avec au moins une valeur non manquante."))
+      }
       print(input$variable)
       if(input$qualiquanti=="quant"){res<-data.frame(descr1(variable)$Descriptif)
       colnames(res) <- c("Descriptif")}
@@ -288,7 +294,12 @@ mod_Descriptifs_server <- function(id,r){
 
     dessinerPLOT1 <- function() {
       base     <- r$BDD
-      variable <- base[, input$variable]
+      variable <- extraire_variable(base, input$variable)
+      if (is.null(variable) || !any(!is.na(variable))) {
+        graphics::plot.new()
+        text(0.5, 0.5, "Aucune valeur non manquante pour cette variable.")
+        return(invisible(NULL))
+      }
       if (input$qualiquanti == "quant") {
         hist(variable, xlab = input$variable, ylab = "Effectif", main = "Histogramme", col = "#75AADB", border = "white")
       }
@@ -303,17 +314,24 @@ mod_Descriptifs_server <- function(id,r){
 
     dessinerPLOT2 <- function() {
       base     <- r$BDD
-      variable <- base[, colnames(base) == input$variable]
+      variable <- extraire_variable(base, input$variable)
+      if (is.null(variable) || !any(!is.na(variable))) {
+        print(ggplot() + annotate("text", x = 0.5, y = 0.5,
+                                  label = "Aucune valeur non manquante pour cette variable.") + theme_void())
+        return(invisible(NULL))
+      }
       if (input$qualiquanti == "quant") {
         g <- ggplot(base, aes_string(y = input$variable)) + geom_boxplot(width = 0.2) + theme_minimal()
         print(g)
       }
       if (input$qualiquanti == "qual") {
-        g <- ggplot(as.data.frame(table(variable)), aes(x = "", y = Freq, fill = variable)) +
+        tab <- as.data.frame(table(variable))
+        names(tab) <- c("variable", "Freq")
+        g <- ggplot(tab, aes(x = "", y = Freq, fill = variable)) +
           geom_bar(stat = "identity", width = 1) +
           coord_polar("y", start = 0) + theme_void() + ggtitle("Diagramme circulaire") +
           geom_text(aes(label = variable),
-                   position = position_stack(vjust = 0.5)) + theme(legend.position = "none")
+                    position = position_stack(vjust = 0.5)) + theme(legend.position = "none")
         print(g)
       }
     }
@@ -335,7 +353,12 @@ mod_Descriptifs_server <- function(id,r){
       filename = function() paste0("descriptif_", input$variable, ".csv"),
       content = function(file) {
         base     <- r$BDD
-        variable <- base[, colnames(base) == input$variable]
+        variable <- extraire_variable(base, input$variable)
+        if (is.null(variable) || !any(!is.na(variable))) {
+          write.csv(data.frame(Message = "Aucune valeur non manquante pour cette variable."),
+                    file, row.names = FALSE)
+          return(invisible(NULL))
+        }
         if (input$qualiquanti == "quant") {
           res <- data.frame(descr1(variable)$Descriptif)
         }
