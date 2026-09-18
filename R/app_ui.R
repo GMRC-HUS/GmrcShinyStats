@@ -162,7 +162,8 @@ app_ui <- function(request) {
                                             menuItem("Croisements/Inférence", tabName = "croisements", icon = icon("fa-dice", verify_fa = FALSE)),
                                             menuItem("Analyse de survie", tabName = "survie", icon = icon("fa-skull-crossbones", verify_fa = FALSE)),
                                             menuItem("Tests diagnostiques", tabName = "tests", icon = icon("fa-vial", verify_fa = FALSE)),
-                                            menuItem("Concordance", tabName = "concordance", icon = icon("fa-equals", verify_fa = FALSE))
+                                            menuItem("Concordance", tabName = "concordance", icon = icon("fa-equals", verify_fa = FALSE)),
+                                            menuItem("Historique", tabName = "historique", icon = icon("fa-clock-rotate-left", verify_fa = FALSE))
                                          )
                                        ),
                                        dashboardBody(
@@ -195,9 +196,12 @@ app_ui <- function(request) {
                                            tabItem(tabName = "tests",
                                                    mod_Tests_ui("Tests_1")
                                            ),
-                                           tabItem(tabName = "concordance",
-                                                   mod_Concordance_ui("Concordance_1")
-                                           )
+                                            tabItem(tabName = "concordance",
+                                                    mod_Concordance_ui("Concordance_1")
+                                            ),
+                                            tabItem(tabName = "historique",
+                                                    mod_Historique_ui("Historique_1")
+                                            )
                                          )
                                        )
                          )

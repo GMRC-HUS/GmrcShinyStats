@@ -252,6 +252,23 @@ mod_Descriptifs_server <- function(id,r){
       selectInput(ns("variable"), "Variable:",   choices=r$noms)
     })
 
+    observeEvent(input$variable, ignoreInit = TRUE, {
+      base <- r$BDD
+      if (is.null(base)) {
+        return(invisible(NULL))
+      }
+      variable <- base[, colnames(base) == input$variable]
+      n_eff <- sum(!is.na(variable))
+      if (input$qualiquanti == "quant") {
+        res <- paste("n =", n_eff,
+                     "; moyenne =", round(mean(variable, na.rm = TRUE), 3),
+                     "; médiane =", round(median(variable, na.rm = TRUE), 3))
+      } else {
+        res <- paste("n =", n_eff, "; modalités =", length(table(variable)))
+      }
+      enregistrer_resultat(r, "Descriptif", paste("Variable :", input$variable), res)
+    })
+
     # output$summary <- renderPrint({
     #   summary(r$BDD)
     # })

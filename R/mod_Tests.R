@@ -154,8 +154,33 @@ mod_Tests_server <- function(id,r){
       #variablesurvie2 <-base[,colnames(base)==input$variableLogit2]
       variablesurvie2 <-base %>% select(input$variableLogit2)
       variablesurvie2 <- variablesurvie2[[1]]
-      data.frame(Reponse=variablesurvie1, Facteur=variablesurvie2)
-      },rownames=TRUE)
+       data.frame(Reponse=variablesurvie1, Facteur=variablesurvie2)
+       },rownames=TRUE)
+
+    observeEvent(c(input$variableLogit1, input$variableLogit2),
+                 ignoreInit = TRUE, {
+      base <- r$BDD
+      if (is.null(base)) {
+        return(invisible(NULL))
+      }
+      if (is.null(input$variableLogit1) || is.null(input$variableLogit2)) {
+        return(invisible(NULL))
+      }
+      x <- base %>% select(input$variableLogit1)
+      x <- x[[1]]
+      y <- base %>% select(input$variableLogit2)
+      y <- y[[1]]
+      rocobj <- tryCatch(roc(x, y, percent = TRUE, quiet = TRUE), error = function(e) NULL)
+      if (is.null(rocobj)) {
+        return(invisible(NULL))
+      }
+      auc <- tryCatch(round(attr(rocobj, "auc"), 3), error = function(e) NA)
+      seuil <- tryCatch(round(ci.thresholds(rocobj, ret = "best")$best$threshold, 3),
+                        error = function(e) NA)
+      enregistrer_resultat(r, "Tests diagnostiques",
+                           paste("ROC :", input$variableLogit1, "(", input$variableLogit2, ")"),
+                           paste("AUC =", auc, "; seuil optimal (Youden) =", seuil))
+    })
 #     
 # 
 # 

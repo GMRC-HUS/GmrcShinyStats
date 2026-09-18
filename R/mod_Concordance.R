@@ -265,9 +265,53 @@ mod_Concordance_server <- function(id,r){
       output$LandisEtKoch2 <- renderTable({
         data.frame(Kappa=c("0-0.2","0.21-0.40","0.41-0.60","0.61-0.80","0.81-1"),
                    interpretation=c("très faible","faible","modéré","fort","presque parfait"))
-        
-      },rownames=TRUE)   
-      
+
+      },rownames=TRUE)
+
+      observeEvent(c(input$CONCORDANCElecture1, input$CONCORDANCElecture2,
+                     input$CONCORsaisie, input$Concoman1, input$Concoman2),
+                   ignoreInit = TRUE, {
+        base <- r$BDD
+        if (is.null(base)) {
+          return(invisible(NULL))
+        }
+        if (isTRUE(input$CONCORsaisie)) {
+          if (is.null(input$Concoman1) || is.null(input$Concoman2)) {
+            return(invisible(NULL))
+          }
+          if (input$Concoman1 == "" || input$Concoman2 == "") {
+            return(invisible(NULL))
+          }
+          x <- as.factor(strsplit(input$Concoman1, " ")[[1]])
+          y <- as.factor(strsplit(input$Concoman2, " ")[[1]])
+          source_ <- "saisie manuelle"
+        } else {
+          if (is.null(input$CONCORDANCElecture1) || is.null(input$CONCORDANCElecture2)) {
+            return(invisible(NULL))
+          }
+          x <- base[, colnames(base) == input$CONCORDANCElecture1]
+          y <- base[, colnames(base) == input$CONCORDANCElecture2]
+          source_ <- paste("lecteurs :", input$CONCORDANCElecture1, "×", input$CONCORDANCElecture2)
+        }
+        if (length(x) != length(y) || length(x) == 0) {
+          return(invisible(NULL))
+        }
+        Mat2 <- cbind(x, y)
+        Mat2 <- Mat2[complete.cases(Mat2), ]
+        if (nrow(Mat2) == 0) {
+          return(invisible(NULL))
+        }
+        kk <- tryCatch(suppressWarnings(kappa2(Mat2)), error = function(e) NULL)
+        if (is.null(kk)) {
+          return(invisible(NULL))
+        }
+        enregistrer_resultat(r, "Concordance",
+                             paste("Kappa de Cohen (", source_, ")"),
+                             paste("Kappa =", round(kk$value, 3),
+                                   "; p =", round(kk$p.value, 3),
+                                   "; interprétation :", interpretation_kappa(kk$value)))
+      })
+
     })
   })
 }

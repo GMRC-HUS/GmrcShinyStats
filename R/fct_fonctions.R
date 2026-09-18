@@ -157,6 +157,22 @@ theme_gmrc <- function() {
     )
 }
 
+enregistrer_resultat <- function(r, module, analyse, resultats) {
+  ligne <- data.frame(
+    date_heure = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+    module = module,
+    analyse = analyse,
+    resultats = resultats,
+    stringsAsFactors = FALSE
+  )
+  if (is.null(r$historique)) {
+    r$historique <- ligne
+  } else {
+    r$historique <- rbind(r$historique, ligne)
+  }
+  invisible(NULL)
+}
+
 export_png <- function(file, draw, width = 900, height = 700, res = 110) {
   grDevices::png(file, width = width, height = height, res = res)
   on.exit(grDevices::dev.off())

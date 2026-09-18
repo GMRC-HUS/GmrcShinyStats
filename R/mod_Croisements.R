@@ -188,7 +188,43 @@ mod_Croisements_server <- function(id, r){
       selectInput(ns("variableCROISE2"), "Variable:",   choices=r$noms)
     })
 
-
+    observeEvent(c(input$variableCROISE1, input$variableCROISE2,
+                   input$qualiquantiCROISE1, input$qualiquantiCROISE2),
+                 ignoreInit = TRUE, {
+      base <- r$BDD
+      if (is.null(base)) {
+        return(invisible(NULL))
+      }
+      var1 <- input$variableCROISE1
+      var2 <- input$variableCROISE2
+      if (is.null(var1) || is.null(var2)) {
+        return(invisible(NULL))
+      }
+      q1 <- input$qualiquantiCROISE1
+      q2 <- input$qualiquantiCROISE2
+      x <- base[, var1]
+      y <- base[, var2]
+      if (q1 == "quant" && q2 == "quant") {
+        ct <- tryCatch(cor.test(x, y), error = function(e) NULL)
+        if (is.null(ct)) {
+          return(invisible(NULL))
+        }
+        res <- paste("r =", round(ct$estimate, 3), "; p =", round(ct$p.value, 3))
+      } else if (q1 == "qual" && q2 == "qual") {
+        tab <- table(x, y)
+        pv <- tryCatch(
+          suppressWarnings(chisq.test(tab)$p.value),
+          warning = function(w) fisher.test(tab)$p.value,
+          error = function(e) NA
+        )
+        res <- paste("p =", round(pv, 3))
+      } else {
+        res <- "test de comparaison (résultats détaillés à l'écran)"
+      }
+      enregistrer_resultat(r, "Croisements",
+                           paste("Croisement :", var1, "×", var2, " (", q1, "/", q2, ")"),
+                           res)
+    })
 
     dessinerPLOT_CROISE1 <- function() {
       base            <- r$BDD

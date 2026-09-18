@@ -93,7 +93,7 @@ mod_SaisieManuelle_ui <- function(id){
 #' SaisieManuelle Server Functions
 #'
 #' @noRd 
-mod_SaisieManuelle_server <- function(id){
+mod_SaisieManuelle_server <- function(id, r){
   moduleServer( id, function(input, output, session){
     ns <- session$ns
     
@@ -110,6 +110,49 @@ mod_SaisieManuelle_server <- function(id){
 
     matriceMAIN <- reactive({
       table_crossed(input$NbLignesMAIN, input$NbcolonnesMAIN, input$TableauMAIN1)
+    })
+
+    observeEvent(matriceMAIN(), ignoreInit = TRUE, {
+      Mat <- matriceMAIN()
+      if (is.null(Mat)) {
+        return(invisible(NULL))
+      }
+      ch2p <- tryCatch(suppressWarnings(chisq.test(Mat, correct = FALSE)$p.value),
+                       error = function(e) NA)
+      fishe <- tryCatch(suppressWarnings(fisher.test(Mat)$p.value),
+                       error = function(e) NA)
+      enregistrer_resultat(r, "Saisie manuelle",
+                           paste("Tableau croisé", dim(Mat)[1], "×", dim(Mat)[2]),
+                           paste("χ² p =", round(ch2p, 3),
+                                 "; Fisher p =", round(fishe, 3)))
+    })
+
+    observeEvent(c(input$Concoman1, input$Concoman2), ignoreInit = TRUE, {
+      if (is.null(input$Concoman1) || is.null(input$Concoman2)) {
+        return(invisible(NULL))
+      }
+      if (input$Concoman1 == "" || input$Concoman2 == "") {
+        return(invisible(NULL))
+      }
+      x <- as.factor(strsplit(input$Concoman1, " ")[[1]])
+      y <- as.factor(strsplit(input$Concoman2, " ")[[1]])
+      if (length(x) != length(y) || length(x) == 0) {
+        return(invisible(NULL))
+      }
+      Mat2 <- cbind(x, y)
+      Mat2 <- Mat2[complete.cases(Mat2), ]
+      if (nrow(Mat2) == 0) {
+        return(invisible(NULL))
+      }
+      kk <- tryCatch(suppressWarnings(kappa2(Mat2)), error = function(e) NULL)
+      if (is.null(kk)) {
+        return(invisible(NULL))
+      }
+      enregistrer_resultat(r, "Saisie manuelle",
+                           "Concordance entre deux lecteurs (saisie manuelle)",
+                           paste("Kappa =", round(kk$value, 3),
+                                 "; p =", round(kk$p.value, 3),
+                                 "; interprétation :", interpretation_kappa(kk$value)))
     })
 
     output$msgTableau <- renderText({

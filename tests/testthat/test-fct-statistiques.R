@@ -132,6 +132,19 @@ test_that("theme_gmrc returns a ggplot2 theme", {
   expect_s3_class(theme_gmrc(), "theme")
 })
 
+test_that("enregistrer_resultat appends rows to a session history", {
+  r <- reactiveValues()
+  expect_null(isolate(r$historique))
+  isolate(enregistrer_resultat(r, "Descriptif", "Variable : x", "n = 10"))
+  expect_equal(nrow(isolate(r$historique)), 1)
+  isolate(enregistrer_resultat(r, "Survie", "Kaplan-Meier : t", "n = 20"))
+  hist <- isolate(r$historique)
+  expect_equal(nrow(hist), 2)
+  expect_equal(hist$module, c("Descriptif", "Survie"))
+  expect_equal(hist$analyse, c("Variable : x", "Kaplan-Meier : t"))
+  expect_true(all(grepl("^\\d{4}-\\d{2}-\\d{2} ", hist$date_heure)))
+})
+
 test_that("export_png renders a plot to a PNG file", {
   f <- tempfile(fileext = ".png")
   export_png(f, function() hist(rnorm(20)))

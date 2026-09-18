@@ -181,6 +181,8 @@ mod_chargement_server <- function(id,r){
       Y<-as.data.frame(lapply(D, factor))
       z<-as.numeric(lapply(Y, nlevels))
       r$nbModeVariable<-z
+      enregistrer_resultat(r, "Base de données", "Chargement de la base",
+                           paste(dim(r$BDD)[1], "observations ×", dim(r$BDD)[2], "variables"))
     })
 
     # for(i in 1 : (dim(D)[2])){
