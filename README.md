@@ -1,7 +1,5 @@
 # GMRC Shiny Stats
 
-[![R-CMD-check](https://github.com/GMRC-HUS/GmrcShinyStats/actions/workflows/R-CMD-check/badge.svg)](https://github.com/GMRC-HUS/GmrcShinyStats/actions/workflows/R-CMD-check)
-
 **GMRC Shiny Stats** permet de réaliser facilement des analyses biostatistiques,
 sans aucune connaissance en programmation. L'application est développée par le
 Groupe Méthode en Recherche Clinique (GMRC) des Hôpitaux Universitaires de
